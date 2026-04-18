@@ -1,0 +1,43 @@
+Stage 1 is failing specifically on the numpy uninstall conflict
+
+pip3 install --break-system-packages --ignore-installed numpy
+
+Then continue the rest of Stage 1 from where it stopped. Since the PX4 and Gazebo parts come after the Python packages in the script, re-run just those remaining parts manually:
+
+# Install Gazebo Harmonic
+sudo curl -sSL https://packages.osrfoundation.org/gazebo.gpg \
+    -o /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg
+
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] \
+http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" \
+    | sudo tee /etc/apt/sources.list.d/gazebo-stable.list > /dev/null
+
+sudo apt-get update -y && sudo apt-get install -y gz-harmonic
+
+
+# Clone PX4
+cd ~
+git clone https://github.com/PX4/PX4-Autopilot.git --recursive
+cd ~/PX4-Autopilot
+bash Tools/setup/ubuntu.sh --no-nuttx
+bash# Build PX4 (takes 10-15 min)
+cd ~/PX4-Autopilot
+make px4_sitl gz_x500
+
+# Install XRCE-DDS bridge
+cd ~
+git clone https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
+cd Micro-XRCE-DDS-Agent
+mkdir -p build && cd build
+cmake ..
+make -j$(nproc)
+sudo make install
+sudo ldconfig /usr/local/lib/
+
+# Set environment variables
+echo 'export GZ_VERSION=harmonic' >> ~/.bashrc
+source ~/.bashrc
+
+
+To open the GUI of Gazebo
+gz sim --gui

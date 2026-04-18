@@ -1,0 +1,37 @@
+
+The numpy conflict is persistent. Let's do a clean fix once and for all:
+
+bash
+# Step 1 - Remove all conflicting numpy versions
+pip3 uninstall numpy -y
+sudo apt remove python3-numpy -y
+
+# Step 2 - Install the correct version
+pip3 install --break-system-packages "numpy==1.26.4"
+
+# Step 3 - Reinstall cv2 and ultralytics against the correct numpy
+pip3 install --break-system-packages --ignore-installed opencv-python ultralytics
+Then verify all three work together:
+
+bash
+python3 -c "
+import numpy
+import cv2
+from ultralytics import YOLO
+print('numpy:', numpy.__version__)
+print('cv2:', cv2.__version__)
+print('All imports OK!')
+"
+Should print:
+
+numpy: 1.26.4
+cv2: 4.x.x
+All imports OK!
+Then run the node:
+
+bash
+ros2 run precision_pollination yolov8_detector
+If sudo apt remove python3-numpy causes issues:
+bash
+# Alternative — force pip to use specific numpy
+pip3 install --break-system-packages --ignore-installed --force-reinstall "numpy==1.26.4"
