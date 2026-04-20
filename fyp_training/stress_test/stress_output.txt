@@ -1,0 +1,521 @@
+[INFO] [1776688142.511224926] [mission_logger]: Mission logger started. Log: /home/joney/Desktop/FYP/fyp_training/mission_log_20260420_202902.csv
+[INFO] [1776688150.484849380] [mission_logger]: LOGGED: Drone 0 pollinated flower #1. Total: 1
+[INFO] [1776688151.454097511] [mission_logger]: LOGGED: Drone 1 pollinated flower #1. Total: 2
+[INFO] [1776688152.419867327] [mission_logger]: LOGGED: Drone 2 pollinated flower #1. Total: 3
+[INFO] [1776688157.987872532] [mission_logger]: LOGGED: Drone 0 pollinated flower #2. Total: 4
+[INFO] [1776688158.957044666] [mission_logger]: LOGGED: Drone 1 pollinated flower #2. Total: 5
+[INFO] [1776688159.922913262] [mission_logger]: LOGGED: Drone 2 pollinated flower #2. Total: 6
+[INFO] [1776688165.491048712] [mission_logger]: LOGGED: Drone 0 pollinated flower #3. Total: 7
+[INFO] [1776688166.459354086] [mission_logger]: LOGGED: Drone 1 pollinated flower #3. Total: 8
+[INFO] [1776688167.426691519] [mission_logger]: LOGGED: Drone 2 pollinated flower #3. Total: 9
+[INFO] [1776688172.506653574] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776688172.507285540] [mission_logger]:   Elapsed: 30s
+[INFO] [1776688172.508034231] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776688172.508634633] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776688172.509246976] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776688172.509941061] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776688172.510610816] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776688202.506293415] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776688202.506694821] [mission_logger]:   Elapsed: 60s
+[INFO] [1776688202.507080384] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776688202.507477527] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776688202.507898179] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776688202.508295638] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776688202.508705346] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776688232.506100589] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776688232.506354955] [mission_logger]:   Elapsed: 90s
+[INFO] [1776688232.506519174] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776688232.506643916] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776688232.506765809] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776688232.506881492] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776688232.507004676] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776688262.506561785] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776688262.507134036] [mission_logger]:   Elapsed: 120s
+[INFO] [1776688262.507657433] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776688262.508204322] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776688262.508688312] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776688262.509164409] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776688262.509634323] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776688292.505975316] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776688292.506118994] [mission_logger]:   Elapsed: 150s
+[INFO] [1776688292.506224667] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776688292.506335728] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776688292.506443544] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776688292.506552164] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776688292.506666706] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776688322.506461771] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776688322.507268408] [mission_logger]:   Elapsed: 180s
+[INFO] [1776688322.507994785] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776688322.508524538] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776688322.509091822] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776688322.509534671] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776688322.510013708] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776688352.506475275] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776688352.507212121] [mission_logger]:   Elapsed: 210s
+[INFO] [1776688352.507923192] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776688352.508396797] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776688352.508802592] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776688352.509242472] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776688352.509668188] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776688382.506428657] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776688382.506878091] [mission_logger]:   Elapsed: 240s
+[INFO] [1776688382.507246646] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776688382.507645309] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776688382.508038241] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776688382.508423916] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776688382.508845340] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776688412.506559323] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776688412.507115510] [mission_logger]:   Elapsed: 270s
+[INFO] [1776688412.507542846] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776688412.507995243] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776688412.508403810] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776688412.508935982] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776688412.509352376] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776688442.506613193] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776688442.507223460] [mission_logger]:   Elapsed: 300s
+[INFO] [1776688442.507800186] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776688442.508370288] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776688442.508945014] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776688442.509504183] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776688442.510101559] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776688472.505962355] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776688472.506101626] [mission_logger]:   Elapsed: 330s
+[INFO] [1776688472.506206444] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776688472.506317004] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776688472.506424759] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776688472.506531037] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776688472.506644643] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776688502.506025674] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776688502.506231964] [mission_logger]:   Elapsed: 360s
+[INFO] [1776688502.506401898] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776688502.506584504] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776688502.506774865] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776688502.506956893] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776688502.507161891] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776688532.505947745] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776688532.506085683] [mission_logger]:   Elapsed: 390s
+[INFO] [1776688532.506191448] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776688532.506301118] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776688532.506409127] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776688532.506514736] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776688532.506629326] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776688562.506150669] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776688562.506431716] [mission_logger]:   Elapsed: 420s
+[INFO] [1776688562.506671209] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776688562.506928804] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776688562.507163213] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776688562.507395764] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776688562.507649360] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776688592.505934664] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776688592.506075181] [mission_logger]:   Elapsed: 450s
+[INFO] [1776688592.506178945] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776688592.506289752] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776688592.506397290] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776688592.506504318] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776688592.506617479] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776688622.506689285] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776688622.507417598] [mission_logger]:   Elapsed: 480s
+[INFO] [1776688622.508037184] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776688622.508607274] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776688622.509220048] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776688622.509824360] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776688622.510397169] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776688652.506816613] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776688652.507520835] [mission_logger]:   Elapsed: 510s
+[INFO] [1776688652.508359308] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776688652.509219087] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776688652.509863195] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776688652.510313272] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776688652.510778183] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776688682.506815273] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776688682.507472144] [mission_logger]:   Elapsed: 540s
+[INFO] [1776688682.508087588] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776688682.508679361] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776688682.509260594] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776688682.509827195] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776688682.510426571] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776688712.506664652] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776688712.507333699] [mission_logger]:   Elapsed: 570s
+[INFO] [1776688712.507888436] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776688712.508620799] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776688712.509295541] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776688712.509924334] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776688712.510544247] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776688742.506610683] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776688742.507187876] [mission_logger]:   Elapsed: 600s
+[INFO] [1776688742.507917843] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776688742.508765172] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776688742.509665729] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776688742.510304523] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776688742.510785679] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776688772.506752446] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776688772.507427245] [mission_logger]:   Elapsed: 630s
+[INFO] [1776688772.508016737] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776688772.508711757] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776688772.509314931] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776688772.509891350] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776688772.510492594] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776688802.506692238] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776688802.507341554] [mission_logger]:   Elapsed: 660s
+[INFO] [1776688802.507905662] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776688802.508567548] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776688802.509217724] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776688802.509831664] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776688802.510439006] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776688832.506953406] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776688832.507843698] [mission_logger]:   Elapsed: 690s
+[INFO] [1776688832.508765716] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776688832.509338488] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776688832.509873686] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776688832.510417392] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776688832.511259199] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776688862.506436435] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776688862.506920597] [mission_logger]:   Elapsed: 720s
+[INFO] [1776688862.507341851] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776688862.507790537] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776688862.508212497] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776688862.508624927] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776688862.509081918] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776688892.506538657] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776688892.506989004] [mission_logger]:   Elapsed: 750s
+[INFO] [1776688892.507381077] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776688892.507861725] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776688892.508289629] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776688892.508615060] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776688892.508962520] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776688922.507106882] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776688922.507703441] [mission_logger]:   Elapsed: 780s
+[INFO] [1776688922.508205520] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776688922.509024089] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776688922.509860162] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776688922.510436493] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776688922.511745679] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776688952.507577646] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776688952.508872434] [mission_logger]:   Elapsed: 810s
+[INFO] [1776688952.510134582] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776688952.511466691] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776688952.512835707] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776688952.514172002] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776688952.515562279] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776688982.506722178] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776688982.507387240] [mission_logger]:   Elapsed: 840s
+[INFO] [1776688982.508056037] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776688982.508694710] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776688982.509293342] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776688982.509906873] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776688982.510541605] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776689012.506621729] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776689012.507235639] [mission_logger]:   Elapsed: 870s
+[INFO] [1776689012.507858536] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776689012.508500362] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776689012.509168074] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776689012.509766676] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776689012.510473703] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776689042.506173692] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776689042.506469745] [mission_logger]:   Elapsed: 900s
+[INFO] [1776689042.506710225] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776689042.506970568] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776689042.507220949] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776689042.507471851] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776689042.507741222] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776689072.506635577] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776689072.507243662] [mission_logger]:   Elapsed: 930s
+[INFO] [1776689072.507800425] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776689072.508407475] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776689072.509020867] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776689072.509700454] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776689072.510344282] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776689102.506637740] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776689102.507247517] [mission_logger]:   Elapsed: 960s
+[INFO] [1776689102.507801519] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776689102.508405908] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776689102.508988146] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776689102.509549613] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776689102.510186080] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776689132.506624028] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776689132.507234293] [mission_logger]:   Elapsed: 990s
+[INFO] [1776689132.507808160] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776689132.508433015] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776689132.509015125] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776689132.509584507] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776689132.510200899] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776689162.507355522] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776689162.508731300] [mission_logger]:   Elapsed: 1020s
+[INFO] [1776689162.510028125] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776689162.511360853] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776689162.512695338] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776689162.514017951] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776689162.515357008] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776689192.506500730] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776689192.507045071] [mission_logger]:   Elapsed: 1050s
+[INFO] [1776689192.507743170] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776689192.509328315] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776689192.510470412] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776689192.511300342] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776689192.511925519] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776689222.506644193] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776689222.507283739] [mission_logger]:   Elapsed: 1080s
+[INFO] [1776689222.507854637] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776689222.508453799] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776689222.509054112] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776689222.509614418] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776689222.510176605] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776689252.506634826] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776689252.507275708] [mission_logger]:   Elapsed: 1110s
+[INFO] [1776689252.508322116] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776689252.509816624] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776689252.511118334] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776689252.511817337] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776689252.512488490] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776689282.506478817] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776689282.507046680] [mission_logger]:   Elapsed: 1140s
+[INFO] [1776689282.507548437] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776689282.508060683] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776689282.508502954] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776689282.508956242] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776689282.509386452] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776689312.506731490] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776689312.507357728] [mission_logger]:   Elapsed: 1170s
+[INFO] [1776689312.507914656] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776689312.508497437] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776689312.509085236] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776689312.509642761] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776689312.510244337] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776689342.506640101] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776689342.507253671] [mission_logger]:   Elapsed: 1200s
+[INFO] [1776689342.507798362] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776689342.508388098] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776689342.508964061] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776689342.509521852] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776689342.510121174] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776689372.506725317] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776689372.507544151] [mission_logger]:   Elapsed: 1230s
+[INFO] [1776689372.508645884] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776689372.509630192] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776689372.510499379] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776689372.511128779] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776689372.511546266] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776689402.506564287] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776689402.507124722] [mission_logger]:   Elapsed: 1260s
+[INFO] [1776689402.507630603] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776689402.508257091] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776689402.508967723] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776689402.509606113] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776689402.510215737] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776689432.506983876] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776689432.507614747] [mission_logger]:   Elapsed: 1290s
+[INFO] [1776689432.508165359] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776689432.508799337] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776689432.509397151] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776689432.509974762] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776689432.510565496] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776689462.506636782] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776689462.507240331] [mission_logger]:   Elapsed: 1320s
+[INFO] [1776689462.507736528] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776689462.508237989] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776689462.508675516] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776689462.509104850] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776689462.509564847] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776689492.507512641] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776689492.508202337] [mission_logger]:   Elapsed: 1350s
+[INFO] [1776689492.508762022] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776689492.509348621] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776689492.509925521] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776689492.510487750] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776689492.511080559] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776689522.506976728] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776689522.507657965] [mission_logger]:   Elapsed: 1380s
+[INFO] [1776689522.508334599] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776689522.509075701] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776689522.509634938] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776689522.510219761] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776689522.510836717] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776689552.506676006] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776689552.507314920] [mission_logger]:   Elapsed: 1410s
+[INFO] [1776689552.507924370] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776689552.508511555] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776689552.509153177] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776689552.509716399] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776689552.510327319] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776689582.506596954] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776689582.507110223] [mission_logger]:   Elapsed: 1440s
+[INFO] [1776689582.507623950] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776689582.508585141] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776689582.509140140] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776689582.509578903] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776689582.510169603] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776689612.506736436] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776689612.507670810] [mission_logger]:   Elapsed: 1470s
+[INFO] [1776689612.508347767] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776689612.508879974] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776689612.509393178] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776689612.509946726] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776689612.510422747] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776689642.506862268] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776689642.507778326] [mission_logger]:   Elapsed: 1500s
+[INFO] [1776689642.508415794] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776689642.509007882] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776689642.509602089] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776689642.510172276] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776689642.510983497] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776689672.506732063] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776689672.507473654] [mission_logger]:   Elapsed: 1530s
+[INFO] [1776689672.508095723] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776689672.508923939] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776689672.509531675] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776689672.510142562] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776689672.510737809] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776689702.506705467] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776689702.507377533] [mission_logger]:   Elapsed: 1560s
+[INFO] [1776689702.508050887] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776689702.508674834] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776689702.509262808] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776689702.509830367] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776689702.510429527] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776689732.506398532] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776689732.506826404] [mission_logger]:   Elapsed: 1590s
+[INFO] [1776689732.507138975] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776689732.507481403] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776689732.507822020] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776689732.508129453] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776689732.508493738] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776689762.507145028] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776689762.508242569] [mission_logger]:   Elapsed: 1620s
+[INFO] [1776689762.509747352] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776689762.511184549] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776689762.512558266] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776689762.513968707] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776689762.515359067] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776689792.507535855] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776689792.508894860] [mission_logger]:   Elapsed: 1650s
+[INFO] [1776689792.510168544] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776689792.511660905] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776689792.512416994] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776689792.512996044] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776689792.513660116] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776689822.507574468] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776689822.508962752] [mission_logger]:   Elapsed: 1680s
+[INFO] [1776689822.510251944] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776689822.511583129] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776689822.512915413] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776689822.514282169] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776689822.515644059] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776689852.507545132] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776689852.508943910] [mission_logger]:   Elapsed: 1710s
+[INFO] [1776689852.510249867] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776689852.511605084] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776689852.512957438] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776689852.514289349] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776689852.515640315] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776689882.506629748] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776689882.507253285] [mission_logger]:   Elapsed: 1740s
+[INFO] [1776689882.507806708] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776689882.508417451] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776689882.510313488] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776689882.511067031] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776689882.511763835] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776689912.506512831] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776689912.507075611] [mission_logger]:   Elapsed: 1770s
+[INFO] [1776689912.507568318] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776689912.508095662] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776689912.508646032] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776689912.509331146] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776689912.509940336] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776689942.506564549] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776689942.507175574] [mission_logger]:   Elapsed: 1800s
+[INFO] [1776689942.507734465] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776689942.508319849] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776689942.508902425] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776689942.509478576] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776689942.510128087] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776689972.506632231] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776689972.507233565] [mission_logger]:   Elapsed: 1830s
+[INFO] [1776689972.507775237] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776689972.508340730] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776689972.508898282] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776689972.509461219] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776689972.510093792] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776690002.506624556] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776690002.507232336] [mission_logger]:   Elapsed: 1860s
+[INFO] [1776690002.507769917] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776690002.508345609] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776690002.508932205] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776690002.509501082] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776690002.510102158] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776690032.506686687] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776690032.507300786] [mission_logger]:   Elapsed: 1890s
+[INFO] [1776690032.507847134] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776690032.508415033] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776690032.508977194] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776690032.509532409] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776690032.510148706] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776690062.506673042] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776690062.507243718] [mission_logger]:   Elapsed: 1920s
+[INFO] [1776690062.507740113] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776690062.508254487] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776690062.508750257] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776690062.509220104] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776690062.509676320] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776690092.506617885] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776690092.507221043] [mission_logger]:   Elapsed: 1950s
+[INFO] [1776690092.507767436] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776690092.508349888] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776690092.508926200] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776690092.509484880] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776690092.510080016] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776690122.506241251] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776690122.506583976] [mission_logger]:   Elapsed: 1980s
+[INFO] [1776690122.506895408] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776690122.507211207] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776690122.507510046] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776690122.508013115] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776690122.508872563] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776690152.507596401] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776690152.508884050] [mission_logger]:   Elapsed: 2010s
+[INFO] [1776690152.509956521] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776690152.510990474] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776690152.511934280] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776690152.512425830] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776690152.512796975] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776690182.506634778] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776690182.507539905] [mission_logger]:   Elapsed: 2040s
+[INFO] [1776690182.508398375] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776690182.509229881] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776690182.510023646] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776690182.510733786] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776690182.511357213] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776690212.506635909] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776690212.507269498] [mission_logger]:   Elapsed: 2070s
+[INFO] [1776690212.507826076] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776690212.508404845] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776690212.508975200] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776690212.509528505] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776690212.510139641] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776690242.506592625] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776690242.507175602] [mission_logger]:   Elapsed: 2100s
+[INFO] [1776690242.507711339] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776690242.508293295] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776690242.508858538] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776690242.509422768] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776690242.510021291] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776690272.506638443] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776690272.507259367] [mission_logger]:   Elapsed: 2130s
+[INFO] [1776690272.507811432] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776690272.508377352] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776690272.508944553] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776690272.509498907] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776690272.510089676] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776690302.506394860] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776690302.506821050] [mission_logger]:   Elapsed: 2160s
+[INFO] [1776690302.507183698] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776690302.507640551] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776690302.508092403] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776690302.508530685] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776690302.509076994] [mission_logger]:   Field coverage: 100.0% (target: 90%)
+[INFO] [1776690332.506556082] [mission_logger]: === MISSION SUMMARY ===
+[INFO] [1776690332.507080465] [mission_logger]:   Elapsed: 2190s
+[INFO] [1776690332.507579228] [mission_logger]:   Total pollinated: 9/9
+[INFO] [1776690332.508117937] [mission_logger]:   Drone 0: 3 pollinated, 0 detections
+[INFO] [1776690332.508633895] [mission_logger]:   Drone 1: 3 pollinated, 0 detections
+[INFO] [1776690332.509160289] [mission_logger]:   Drone 2: 3 pollinated, 0 detections
+[INFO] [1776690332.509692594] [mission_logger]:   Field coverage: 100.0% (target: 90%)
