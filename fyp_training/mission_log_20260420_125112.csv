@@ -1,0 +1,4 @@
+timestamp,drone_id,event_type,flower_x,flower_y,cycle_time_s,total_pollinated,details
+2026-04-20T12:51:42.066503,ALL,SUMMARY,0,0,30.00249171257019,0,coverage=0.0%
+2026-04-20T12:52:12.066362,ALL,SUMMARY,0,0,60.00247526168823,0,coverage=0.0%
+2026-04-20T12:52:42.066332,ALL,SUMMARY,0,0,90.00260186195374,0,coverage=0.0%

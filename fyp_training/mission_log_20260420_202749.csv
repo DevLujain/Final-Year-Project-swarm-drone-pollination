@@ -1,0 +1,12 @@
+timestamp,drone_id,event_type,flower_x,flower_y,cycle_time_s,total_pollinated,details
+2026-04-20T20:27:57.314971,0,POLLINATE,2.0,2.0,8.005306243896484,1,"{""drone_id"": 0, ""flower_x"": 2.0, ""flower_y"": 2.0, ""timestamp"": 1776688077.3139021, ""cycle_time"": 8.0, ""confidence"": 0.855, ""simulated"": true}"
+2026-04-20T20:27:58.403329,1,POLLINATE,5.0,2.0,9.093664646148682,2,"{""drone_id"": 1, ""flower_x"": 5.0, ""flower_y"": 2.0, ""timestamp"": 1776688078.4023952, ""cycle_time"": 8.0, ""confidence"": 0.855, ""simulated"": true}"
+2026-04-20T20:27:59.311645,2,POLLINATE,8.0,2.0,10.001984357833862,3,"{""drone_id"": 2, ""flower_x"": 8.0, ""flower_y"": 2.0, ""timestamp"": 1776688079.3109334, ""cycle_time"": 8.0, ""confidence"": 0.855, ""simulated"": true}"
+2026-04-20T20:28:04.818442,0,POLLINATE,2.0,5.0,15.508779764175415,4,"{""drone_id"": 0, ""flower_x"": 2.0, ""flower_y"": 5.0, ""timestamp"": 1776688084.8175938, ""cycle_time"": 7.0, ""confidence"": 0.855, ""simulated"": true}"
+2026-04-20T20:28:05.906147,1,POLLINATE,5.0,5.0,16.5964834690094,5,"{""drone_id"": 1, ""flower_x"": 5.0, ""flower_y"": 5.0, ""timestamp"": 1776688085.9052668, ""cycle_time"": 7.0, ""confidence"": 0.855, ""simulated"": true}"
+2026-04-20T20:28:06.816022,2,POLLINATE,8.0,5.0,17.506359577178955,6,"{""drone_id"": 2, ""flower_x"": 8.0, ""flower_y"": 5.0, ""timestamp"": 1776688086.8151433, ""cycle_time"": 7.0, ""confidence"": 0.855, ""simulated"": true}"
+2026-04-20T20:28:12.321261,0,POLLINATE,2.0,8.0,23.011600255966187,7,"{""drone_id"": 0, ""flower_x"": 2.0, ""flower_y"": 8.0, ""timestamp"": 1776688092.3206666, ""cycle_time"": 7.0, ""confidence"": 0.855, ""simulated"": true}"
+2026-04-20T20:28:13.409471,1,POLLINATE,5.0,8.0,24.09980869293213,8,"{""drone_id"": 1, ""flower_x"": 5.0, ""flower_y"": 8.0, ""timestamp"": 1776688093.4086058, ""cycle_time"": 7.0, ""confidence"": 0.855, ""simulated"": true}"
+2026-04-20T20:28:14.318929,2,POLLINATE,8.0,8.0,25.009267330169678,9,"{""drone_id"": 2, ""flower_x"": 8.0, ""flower_y"": 8.0, ""timestamp"": 1776688094.3183227, ""cycle_time"": 7.0, ""confidence"": 0.855, ""simulated"": true}"
+2026-04-20T20:28:19.312430,ALL,SUMMARY,0,0,30.00186586380005,9,coverage=100.0%
+2026-04-20T20:28:49.314911,ALL,SUMMARY,0,0,60.00190448760986,9,coverage=100.0%
