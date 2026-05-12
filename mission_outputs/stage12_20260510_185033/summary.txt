@@ -1,0 +1,17 @@
+==========================================================
+  STAGE 12 — FIELD HEALTH MAP SUMMARY
+  Generated: 2026-05-10T18:51:55.250171
+==========================================================
+  Total flowers : 300
+  Pollinated    : 281  (93.7%)
+
+  Per-run breakdown:
+    RUN_1:  68 new  →  cumulative 68/300 = 22.7%
+    RUN_2: 123 new  →  cumulative 191/300 = 63.7%
+    RUN_3:  90 new  →  cumulative 281/300 = 93.7%
+
+  Per-sector breakdown:
+    CENTER  :   0/100 (0.0%)
+    LEFT    :   0/100 (0.0%)
+    RIGHT   :   0/100 (0.0%)
+==========================================================

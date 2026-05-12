@@ -1,0 +1,32 @@
+{
+  "stage": "Stage 10 \u2014 Flower Readiness Detection",
+  "dataset": "Sunflower_stages (EarlyBloom, Healthy, MatureBud, YoungBud, Wilted)",
+  "model": "YOLOv8s",
+  "classes": {
+    "0": "bloom_ready",
+    "1": "not_ready"
+  },
+  "class_sources": {
+    "bloom_ready": [
+      "EarlyBloom",
+      "Healthy"
+    ],
+    "not_ready": [
+      "MatureBud",
+      "YoungBud",
+      "Wilted"
+    ]
+  },
+  "training": {
+    "epochs": 80,
+    "image_size": 640,
+    "batch_size": 8
+  },
+  "metrics": {
+    "mAP_50": 0.994,
+    "mAP_50_95": 0.994,
+    "precision": 0.9897,
+    "recall": 0.9915,
+    "target_met": true
+  }
+}

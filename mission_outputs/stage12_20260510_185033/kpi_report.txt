@@ -1,0 +1,33 @@
+==============================================================
+  STAGE 12 — KPI EVALUATION REPORT
+  FYP: Autonomous Swarm Drone Pollination
+  Generated: 2026-05-10T18:51:57.351900
+==============================================================
+
+  FIELD STATISTICS
+  Total flowers   : 300
+  Eligible flowers: 279 (bloom_day 1-3)
+  Never open      : 21 (damaged/failed, bloom_day=0)
+  Pollinated      : 281  (93.7%)
+
+  PER-RUN BREAKDOWN
+  RUN_1:  68 new flowers  → cumulative 68/300 = 22.7%
+  RUN_2: 123 new flowers  → cumulative 191/300 = 63.7%
+  RUN_3:  90 new flowers  → cumulative 281/300 = 93.7%
+
+  PER-SECTOR BREAKDOWN
+    CENTER: 96 flowers pollinated
+    LEFT: 92 flowers pollinated
+    RIGHT: 93 flowers pollinated
+
+  KPI                            Value        Target       Pass?
+  ----------------------------------------------------------
+  Detection mAP@0.5              0.957        ≥ 0.85       ✅ PASS
+  Detection Precision            0.807        —            ✅ PASS
+  Detection Recall               0.784        —            ✅ PASS
+  Readiness mAP@0.5              0.994        ≥ 0.8        ✅ PASS
+  Field coverage (%)             93.7         ≥ 90.0       ✅ PASS
+  Re-pollinations                0            = 0          ✅ PASS
+  TSP improvement (%)            64.7         ≥ 20.0       ✅ PASS
+  Bloom filter gain (%)          33.3         ≥ 10.0       ✅ PASS
+==============================================================

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swarm Drone Pollination — DaaS Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
+<header>
+    <div class="header-left">
+        <h1>🌻 Swarm Drone Pollination</h1>
+        <span class="subtitle">Drone-as-a-Service Dashboard — Stage 13</span>
+    </div>
+    <div class="header-right">
+        <span id="connection-badge" class="badge badge-offline">⬤ Connecting...</span>
+        <span id="elapsed-time" class="elapsed">00:00</span>
+    </div>
+</header>
+
+<!-- ── Mission complete banner (hidden until 100 %) ────────────────────────── -->
+<div id="mission-complete-banner" class="mission-banner hidden">
+    ✅ Mission Complete &nbsp;|&nbsp;
+    <span id="banner-time"></span> elapsed &nbsp;|&nbsp;
+    <span id="banner-flowers"></span> flowers in 3 sectors
+</div>
+
+<!-- ── Top row: Coverage · Drone cards · Controls ──────────────────────────── -->
+<div class="top-row">
+
+    <!-- Coverage -->
+    <div class="card coverage-card">
+        <div class="card-title">Field Coverage</div>
+        <div class="big-number" id="coverage-pct">—</div>
+        <div class="card-sub"  id="flowers-count">— / — flowers pollinated</div>
+        <div class="progress-bar-bg">
+            <div class="progress-bar-fill" id="coverage-bar"></div>
+        </div>
+        <div class="target-label">Target: ≥ 90 %</div>
+    </div>
+
+    <!-- Drone cards -->
+    <div class="drone-cards">
+
+        <div class="card drone-card" id="drone-card-0">
+            <div class="drone-title">Drone 0</div>
+            <div class="drone-sector">LEFT &nbsp;(x &lt; 20 m)</div>
+            <div class="drone-state-pill" id="drone-state-0">IDLE</div>
+            <div class="drone-target"     id="drone-target-0"></div>
+            <div class="drone-progress">
+                <span id="drone-prog-0">— / —</span> pollinated
+            </div>
+        </div>
+
+        <div class="card drone-card" id="drone-card-1">
+            <div class="drone-title">Drone 1</div>
+            <div class="drone-sector">CENTER (20–40 m)</div>
+            <div class="drone-state-pill" id="drone-state-1">IDLE</div>
+            <div class="drone-target"     id="drone-target-1"></div>
+            <div class="drone-progress">
+                <span id="drone-prog-1">— / —</span> pollinated
+            </div>
+        </div>
+
+        <div class="card drone-card" id="drone-card-2">
+            <div class="drone-title">Drone 2</div>
+            <div class="drone-sector">RIGHT (x &gt; 40 m)</div>
+            <div class="drone-state-pill" id="drone-state-2">IDLE</div>
+            <div class="drone-target"     id="drone-target-2"></div>
+            <div class="drone-progress">
+                <span id="drone-prog-2">— / —</span> pollinated
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Mission controls -->
+    <div class="card controls-card">
+        <div class="card-title">Mission Control</div>
+        <div class="controls-note">
+            Press <strong>Start</strong> to launch the simulation.<br>
+            <strong>Reset</strong> generates a new random field.
+        </div>
+        <button class="btn btn-green"  onclick="sendControl('start')">▶ Start</button>
+        <button class="btn btn-orange" onclick="sendControl('stop')">⏹ Stop</button>
+        <button class="btn btn-grey"   onclick="sendControl('reset')">↺ Reset</button>
+        <div id="control-feedback" class="control-feedback"></div>
+    </div>
+
+</div>
+
+<!-- ── Middle row: Health map · Metrics ─────────────────────────────────────── -->
+<div class="middle-row">
+
+    <!-- Health map -->
+    <div class="card map-card">
+        <div class="card-title">
+            Field Health Map
+            <span class="card-note">(YOLOv8 confidence — 60 × 20 m)</span>
+        </div>
+        <!-- canvas: 600 px wide × 200 px tall — matches 60 m × 20 m at 10 px/m -->
+        <canvas id="health-map-canvas" width="600" height="200"></canvas>
+
+        <!-- Field stats bar (additive D) -->
+        <div class="field-stats" id="field-stats-bar">
+            Loading field data...
+        </div>
+
+        <!-- Legend -->
+        <div class="map-legend">
+            <span class="legend-dot legend-closed">●</span> Closed
+            <span class="legend-dot legend-ready">●</span> Ready
+            <span class="legend-dot legend-done">●</span> Pollinated
+        </div>
+    </div>
+
+    <!-- Metrics column -->
+    <div class="metrics-col">
+
+        <div class="card metric-card">
+            <div class="metric-icon">🎯</div>
+            <div class="metric-body">
+                <div class="metric-label">mAP@0.5</div>
+                <div class="metric-target">target ≥ 0.85 ✅</div>
+            </div>
+            <div class="metric-value">0.957</div>
+        </div>
+
+        <div class="card metric-card">
+            <div class="metric-icon">🛣️</div>
+            <div class="metric-body">
+                <div class="metric-label">TSP Path Reduction</div>
+                <div class="metric-target">Nearest Neighbour + 2-opt</div>
+            </div>
+            <div class="metric-value" id="tsp-value">—</div>
+        </div>
+
+        <div class="card metric-card">
+            <div class="metric-icon">🌸</div>
+            <div class="metric-body">
+                <div class="metric-label">Bloom Filter Gain</div>
+                <div class="metric-target">non-viable flowers skipped</div>
+            </div>
+            <div class="metric-value" id="bloom-value">—</div>
+        </div>
+
+        <div class="card metric-card">
+            <div class="metric-icon">🔄</div>
+            <div class="metric-body">
+                <div class="metric-label">Events Logged</div>
+                <div class="metric-target">pollination events total</div>
+            </div>
+            <div class="metric-value" id="events-count">0</div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ── Bottom row: Event log ────────────────────────────────────────────────── -->
+<div class="bottom-row">
+    <div class="card log-card">
+        <div class="card-title">
+            Live Pollination Events
+            <span class="card-note">(latest 30)</span>
+        </div>
+        <table class="event-table">
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Drone</th>
+                    <th>Flower ID</th>
+                    <th>Position (m)</th>
+                    <th>Sector</th>
+                </tr>
+            </thead>
+            <tbody id="event-log-body">
+                <tr><td colspan="5" class="empty-row">Press Start to begin mission...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script src="/static/dashboard.js"></script>
+</body>
+</html>

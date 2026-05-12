@@ -1,0 +1,249 @@
+/* style.css — Stage 13 DaaS Dashboard — Multi-day edition */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #f0f4f0;
+    color: #1a2e1b;
+    min-height: 100vh;
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+header {
+    background: #1B4332;
+    color: white;
+    padding: 14px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+header h1    { font-size: 1.3rem; font-weight: 700; }
+.subtitle    { font-size: 0.75rem; color: #A7C9B0; display: block; margin-top: 2px; }
+.header-right{ display: flex; align-items: center; gap: 16px; }
+.elapsed     { font-size: 1.1rem; font-weight: 600; font-family: monospace; color: #E9C46A; }
+
+/* ── Badges ──────────────────────────────────────────────────────────────── */
+.badge { padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
+.badge-online  { background: #2D6A4F; color: #B7E4C7; }
+.badge-offline { background: #6b3a3a; color: #f4a4a4; }
+.badge-sim     { background: #4a4a1a; color: #E9C46A; }
+
+/* ── Phase banner ────────────────────────────────────────────────────────── */
+.phase-banner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 24px;
+    border-bottom: 2px solid transparent;
+    transition: background 0.4s, border-color 0.4s;
+    gap: 24px;
+}
+.phase-idle         { background: #2d3748; border-color: #4a5568; }
+.phase-mapping      { background: #1a3a5c; border-color: #3b82f6; }
+.phase-pollinating  { background: #1B4332; border-color: #E9C46A; }
+.phase-between      { background: #3b2d4a; border-color: #8b5cf6; }
+.phase-complete     { background: #1a3a2a; border-color: #22c55e; }
+
+.phase-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: white;
+}
+#phase-icon         { font-size: 1.3rem; }
+#phase-day-label    { font-size: 1.0rem; font-weight: 700; color: white; min-width: 90px; }
+.phase-status-label { font-size: 0.80rem; color: #a0aec0; }
+
+.phase-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 0 0 320px;
+}
+.phase-bar-wrap {
+    flex: 1;
+    background: rgba(255,255,255,0.15);
+    border-radius: 6px;
+    height: 8px;
+    overflow: hidden;
+}
+.phase-bar-fill {
+    height: 100%;
+    border-radius: 6px;
+    background: #E9C46A;
+    transition: width 0.5s ease;
+}
+.phase-pct {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: white;
+    min-width: 42px;
+    text-align: right;
+    font-family: monospace;
+}
+
+/* ── Layout rows ─────────────────────────────────────────────────────────── */
+.top-row, .middle-row, .bottom-row, .day-summary-row {
+    display: flex;
+    gap: 16px;
+    padding: 16px 24px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+}
+
+/* ── Cards ───────────────────────────────────────────────────────────────── */
+.card {
+    background: white;
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+.card-title {
+    font-size: 0.82rem; font-weight: 700; color: #2D6A4F;
+    text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px;
+}
+.card-note {
+    font-size: 0.72rem; font-weight: 400; color: #888;
+    text-transform: none; letter-spacing: 0;
+}
+
+/* ── Coverage card ───────────────────────────────────────────────────────── */
+.coverage-card { min-width: 180px; flex: 0 0 180px; text-align: center; }
+.big-number    { font-size: 2.8rem; font-weight: 700; color: #1B4332; line-height: 1; margin: 8px 0 4px; }
+.card-sub      { font-size: 0.78rem; color: #52796F; margin-bottom: 10px; }
+.progress-bar-bg   { background: #e0ede5; border-radius: 6px; height: 10px; overflow: hidden; margin-bottom: 6px; }
+.progress-bar-fill { background: #2D6A4F; height: 100%; width: 0%; border-radius: 6px; transition: width 0.6s ease; }
+.target-label  { font-size: 0.70rem; color: #999; }
+
+/* ── Drone cards ─────────────────────────────────────────────────────────── */
+.drone-cards { display: flex; gap: 10px; flex-wrap: wrap; }
+.drone-card  { min-width: 140px; text-align: center; border-top: 3px solid #2D6A4F; transition: border-top-color 0.3s; }
+.drone-title   { font-size: 0.95rem; font-weight: 700; color: #1B4332; }
+.drone-sector  { font-size: 0.68rem; color: #888; margin: 2px 0 8px; }
+.drone-state-pill {
+    display: inline-block; font-size: 0.75rem; font-weight: 700;
+    padding: 4px 10px; border-radius: 6px;
+    background: #e2e3e5; color: #555;
+    font-family: monospace; letter-spacing: 0.04em;
+    transition: background 0.2s, color 0.2s; margin-bottom: 5px;
+}
+/* State colour classes */
+.s-SWEEP      { background: #dbeafe; color: #1e40af; }
+.s-PREFLIGHT  { background: #dde3ff; color: #3a4a9f; }
+.s-ARMING     { background: #ede0ff; color: #6a3a9f; }
+.s-TAKEOFF    { background: #d1ecf1; color: #0c5460; }
+.s-SEARCH     { background: #d4edda; color: #155724; }
+.s-APPROACH   { background: #fff3cd; color: #856404; }
+.s-HOVER      { background: #cce5ff; color: #004085; }
+.s-POLLINATE  { background: #E9C46A; color: #1B4332; font-size: 0.85rem; }
+.s-LAND       { background: #f8d7da; color: #721c24; }
+.s-IDLE       { background: #e2e3e5; color: #6c757d; }
+.s-DONE       { background: #b7e4c7; color: #1B4332; }
+
+.drone-target   { font-size: 0.65rem; color: #2D6A4F; font-family: monospace; min-height: 14px; margin-bottom: 3px; }
+.drone-progress { font-size: 0.72rem; color: #52796F; }
+.drone-progress span { font-weight: 700; color: #1B4332; }
+
+/* Drone mini-stats table */
+.drone-stats-table {
+    width: 100%;
+    margin-top: 8px;
+    border-collapse: collapse;
+    font-size: 0.68rem;
+}
+.drone-stats-table td {
+    padding: 2px 4px;
+    border-top: 1px solid #e8f0e9;
+}
+.drone-stats-table td:first-child {
+    color: #888;
+    width: 52%;
+    text-align: left;
+}
+.drone-stats-table td:last-child {
+    font-weight: 700;
+    color: #1B4332;
+    font-family: monospace;
+    text-align: right;
+}
+
+/* ── Controls ────────────────────────────────────────────────────────────── */
+.controls-card { min-width: 180px; flex: 0 0 180px; }
+.controls-note { font-size: 0.70rem; color: #888; margin-bottom: 12px; line-height: 1.5; }
+.btn { display: block; width: 100%; padding: 8px 12px; margin-bottom: 8px; border: none; border-radius: 6px; font-size: 0.88rem; font-weight: 600; cursor: pointer; transition: opacity 0.15s; }
+.btn:hover  { opacity: 0.85; }
+.btn-green  { background: #2D6A4F; color: white; }
+.btn-orange { background: #E9C46A; color: #1B4332; }
+.btn-grey   { background: #e0e0e0; color: #444; }
+.control-feedback { font-size: 0.73rem; color: #2D6A4F; min-height: 16px; text-align: center; margin-top: 4px; }
+
+/* ── Health map ──────────────────────────────────────────────────────────── */
+.map-card { flex: 0 0 auto; }
+#health-map-canvas { display: block; border: 1px solid #cde0d5; border-radius: 4px; background: #111827; }
+.field-stats { font-size: 0.70rem; color: #555; margin-top: 6px; font-family: monospace; }
+.map-legend  { display: flex; gap: 12px; margin-top: 6px; font-size: 0.68rem; color: #555; align-items: center; flex-wrap: wrap; }
+.legend-dot  { font-size: 0.85rem; margin-right: 2px; }
+
+/* ── Metrics column ──────────────────────────────────────────────────────── */
+.metrics-col { display: flex; flex-direction: column; gap: 12px; flex: 1; min-width: 220px; }
+.metric-card { display: flex; align-items: center; gap: 12px; padding: 12px 16px; }
+.metric-icon  { font-size: 1.4rem; flex: 0 0 auto; }
+.metric-body  { flex: 1; }
+.metric-label { font-size: 0.80rem; color: #52796F; }
+.metric-target{ font-size: 0.68rem; color: #aaa; margin-top: 2px; }
+.metric-value { font-size: 1.3rem; font-weight: 700; color: #1B4332; flex: 0 0 auto; min-width: 70px; text-align: right; }
+
+/* ── Day summary table ───────────────────────────────────────────────────── */
+.day-summary-row { padding-top: 0; }
+.day-table-card  { flex: 1; }
+
+.day-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+}
+.day-table th {
+    background: #1B4332; color: white;
+    padding: 7px 12px; text-align: center; font-weight: 600;
+}
+.day-table th:first-child { text-align: left; }
+.day-table td {
+    padding: 7px 12px;
+    text-align: center;
+    border-bottom: 1px solid #e8f0e9;
+}
+.day-table td:first-child { text-align: left; }
+
+.day-label { font-weight: 600; color: #2D6A4F; }
+
+.day-pending td { color: #aaa; }
+
+.day-active  { background: #f0fdf4; }
+.day-active .day-label { color: #1B4332; }
+
+.day-complete td { color: #1a2e1b; }
+.day-complete .day-label { color: #1B4332; }
+
+.day-total {
+    background: #1B4332;
+    font-weight: 700;
+}
+.day-total td { color: white !important; border-bottom: none; }
+
+/* ── Event log ───────────────────────────────────────────────────────────── */
+.log-card { flex: 1; }
+.event-table { width: 100%; border-collapse: collapse; font-size: 0.80rem; }
+.event-table th { background: #1B4332; color: white; padding: 6px 10px; text-align: left; font-weight: 600; }
+.event-table td { padding: 5px 10px; border-bottom: 1px solid #e8f0e9; }
+.event-table tr:nth-child(even) td { background: #f5faf5; }
+.empty-row { color: #999; text-align: center; padding: 16px; }
+
+/* Day badge in event log */
+.day-badge {
+    display: inline-block; padding: 1px 6px; border-radius: 4px;
+    font-size: 0.70rem; font-weight: 700; font-family: monospace;
+}
+.day-badge-1 { background: #dbeafe; color: #1e40af; }
+.day-badge-2 { background: #d4edda; color: #155724; }
+.day-badge-3 { background: #fff3cd; color: #856404; }

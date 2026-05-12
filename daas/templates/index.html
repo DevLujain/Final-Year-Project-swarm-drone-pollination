@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swarm Drone Pollination — DaaS Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
+<header>
+    <div class="header-left">
+        <h1>🌻 Swarm Drone Pollination</h1>
+        <span class="subtitle">Drone-as-a-Service Dashboard — Stage 13</span>
+    </div>
+    <div class="header-right">
+        <span id="connection-badge" class="badge badge-offline">⬤ Connecting...</span>
+        <span id="elapsed-time" class="elapsed">00:00</span>
+    </div>
+</header>
+
+<!-- ── Phase banner ─────────────────────────────────────────────────────────── -->
+<div id="phase-banner" class="phase-banner phase-idle">
+    <div class="phase-left">
+        <span id="phase-icon">🛰️</span>
+        <span id="phase-day-label">Ready</span>
+        <span id="phase-status-label" class="phase-status-label">Press Start to begin 3-day mission</span>
+    </div>
+    <div class="phase-right">
+        <div class="phase-bar-wrap">
+            <div class="phase-bar-fill" id="phase-bar-fill" style="width:0%"></div>
+        </div>
+        <span id="phase-pct" class="phase-pct">—</span>
+    </div>
+</div>
+
+<!-- ── Top row ──────────────────────────────────────────────────────────────── -->
+<div class="top-row">
+
+    <!-- Coverage / Mapping card -->
+    <div class="card coverage-card">
+        <div class="card-title" id="coverage-card-title">Field Coverage</div>
+        <div class="big-number" id="coverage-pct">—</div>
+        <div class="card-sub"   id="coverage-sub">Press Start to begin</div>
+        <div class="progress-bar-bg">
+            <div class="progress-bar-fill" id="coverage-bar"></div>
+        </div>
+        <div class="target-label" id="coverage-target">Target: ≥ 90 %</div>
+    </div>
+
+    <!-- Drone cards -->
+    <div class="drone-cards">
+        <div class="card drone-card" id="drone-card-0">
+            <div class="drone-title">Drone 0</div>
+            <div class="drone-sector">LEFT  (x &lt; 20 m)</div>
+            <div class="drone-state-pill" id="drone-state-0">IDLE</div>
+            <div class="drone-target"     id="drone-target-0"></div>
+            <div class="drone-progress">  <span id="drone-prog-0">—</span></div>
+            <table class="drone-stats-table">
+                <tr><td>Speed</td>   <td id="d0-speed">0.0 m/s</td></tr>
+                <tr><td>Distance</td><td id="d0-dist">0.00 m</td></tr>
+                <tr><td>Flight</td>  <td id="d0-time">0 min 00 s</td></tr>
+            </table>
+        </div>
+        <div class="card drone-card" id="drone-card-1">
+            <div class="drone-title">Drone 1</div>
+            <div class="drone-sector">CENTER (20–40 m)</div>
+            <div class="drone-state-pill" id="drone-state-1">IDLE</div>
+            <div class="drone-target"     id="drone-target-1"></div>
+            <div class="drone-progress">  <span id="drone-prog-1">—</span></div>
+            <table class="drone-stats-table">
+                <tr><td>Speed</td>   <td id="d1-speed">0.0 m/s</td></tr>
+                <tr><td>Distance</td><td id="d1-dist">0.00 m</td></tr>
+                <tr><td>Flight</td>  <td id="d1-time">0 min 00 s</td></tr>
+            </table>
+        </div>
+        <div class="card drone-card" id="drone-card-2">
+            <div class="drone-title">Drone 2</div>
+            <div class="drone-sector">RIGHT (x &gt; 40 m)</div>
+            <div class="drone-state-pill" id="drone-state-2">IDLE</div>
+            <div class="drone-target"     id="drone-target-2"></div>
+            <div class="drone-progress">  <span id="drone-prog-2">—</span></div>
+            <table class="drone-stats-table">
+                <tr><td>Speed</td>   <td id="d2-speed">0.0 m/s</td></tr>
+                <tr><td>Distance</td><td id="d2-dist">0.00 m</td></tr>
+                <tr><td>Flight</td>  <td id="d2-time">0 min 00 s</td></tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- Mission controls -->
+    <div class="card controls-card">
+        <div class="card-title">Mission Control</div>
+        <div class="controls-note">
+            <strong>Start</strong> launches the 3-day mission automatically.<br>
+            <strong>Reset</strong> generates a new random field.
+        </div>
+        <button class="btn btn-green"  onclick="sendControl('start')">▶ Start</button>
+        <button class="btn btn-orange" onclick="sendControl('stop')">⏹ Stop</button>
+        <button class="btn btn-grey"   onclick="sendControl('reset')">↺ Reset</button>
+        <div id="control-feedback" class="control-feedback"></div>
+    </div>
+</div>
+
+<!-- ── Middle row: health map + metrics ─────────────────────────────────────── -->
+<div class="middle-row">
+
+    <div class="card map-card">
+        <div class="card-title">
+            Field Health Map
+            <span class="card-note">(YOLOv8 confidence — 60 × 20 m)</span>
+        </div>
+        <canvas id="health-map-canvas" width="600" height="200"></canvas>
+        <div class="field-stats" id="field-stats-bar">Waiting for mapping data...</div>
+        <div class="map-legend">
+            <span class="legend-dot" style="color:#555">●</span> Undiscovered
+            <span class="legend-dot" style="color:#888">●</span> Closed
+            <span class="legend-dot" style="color:#E9C46A">●</span> Ready
+            <span class="legend-dot" style="color:#60a5fa">●</span> Future day
+            <span class="legend-dot" style="color:#22c55e">●</span> Pollinated
+        </div>
+    </div>
+
+    <div class="metrics-col">
+        <div class="card metric-card">
+            <div class="metric-icon">🎯</div>
+            <div class="metric-body">
+                <div class="metric-label">mAP@0.5</div>
+                <div class="metric-target">target ≥ 0.85 ✅</div>
+            </div>
+            <div class="metric-value">0.957</div>
+        </div>
+        <div class="card metric-card">
+            <div class="metric-icon">🛣️</div>
+            <div class="metric-body">
+                <div class="metric-label">TSP Path Reduction</div>
+                <div class="metric-target">Nearest Neighbour + 2-opt</div>
+            </div>
+            <div class="metric-value" id="tsp-value">—</div>
+        </div>
+        <div class="card metric-card">
+            <div class="metric-icon">🌸</div>
+            <div class="metric-body">
+                <div class="metric-label">Bloom Filter Gain</div>
+                <div class="metric-target">non-viable flowers skipped</div>
+            </div>
+            <div class="metric-value" id="bloom-value">—</div>
+        </div>
+        <div class="card metric-card">
+            <div class="metric-icon">🔄</div>
+            <div class="metric-body">
+                <div class="metric-label">Events Logged</div>
+                <div class="metric-target">total across all days</div>
+            </div>
+            <div class="metric-value" id="events-count">0</div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Day summary table ─────────────────────────────────────────────────────── -->
+<div class="day-summary-row">
+    <div class="card day-table-card">
+        <div class="card-title">
+            Daily Mission Summary
+            <span class="card-note" id="mission-totals-label"></span>
+        </div>
+        <table class="day-table">
+            <thead>
+                <tr>
+                    <th>Day</th>
+                    <th>New Scans</th>
+                    <th>Prev. Pollinated</th>
+                    <th>Ready</th>
+                    <th>Not Ready</th>
+                    <th>Pollinated</th>
+                    <th>Missed</th>
+                </tr>
+            </thead>
+            <tbody id="day-summary-body">
+                <tr><td colspan="7" class="empty-row">Mission not started</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ── Drone performance table ────────────────────────────────────────────── -->
+<div class="day-summary-row">
+    <div class="card day-table-card">
+        <div class="card-title">Drone Performance Statistics
+            <span class="card-note">— estimated real-world flight times &amp; distances (x500 @ 2.5–3.0 m/s)</span>
+        </div>
+        <table class="day-table">
+            <thead>
+                <tr>
+                    <th>Day</th>
+                    <th>Avg Speed (m/s)</th>
+                    <th>Mapping Time</th>
+                    <th>Pollination Time</th>
+                    <th>Total Mission</th>
+                    <th>Distance / Drone</th>
+                </tr>
+            </thead>
+            <tbody id="perf-summary-body">
+                <tr><td colspan="6" class="empty-row">Mission not started</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+<div class="bottom-row">
+    <div class="card log-card">
+        <div class="card-title">Live Pollination Events
+            <span class="card-note">(latest 30)</span>
+        </div>
+        <table class="event-table">
+            <thead>
+                <tr>
+                    <th>Day</th>
+                    <th>Time</th>
+                    <th>Drone</th>
+                    <th>Flower ID</th>
+                    <th>Position (m)</th>
+                    <th>Sector</th>
+                </tr>
+            </thead>
+            <tbody id="event-log-body">
+                <tr><td colspan="6" class="empty-row">Press Start to begin mission...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script src="/static/dashboard.js"></script>
+</body>
+</html>

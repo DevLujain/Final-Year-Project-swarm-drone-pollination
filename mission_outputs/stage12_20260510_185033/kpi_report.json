@@ -1,0 +1,70 @@
+{
+  "generated_at": "2026-05-10T18:51:57.351900",
+  "field": {
+    "total_flowers": 300,
+    "eligible_flowers": 279,
+    "never_open": 21,
+    "pollinated": 281,
+    "coverage_pct": 93.67
+  },
+  "per_run": {
+    "RUN_1": {
+      "count": 68,
+      "pct_of_total": 22.7
+    },
+    "RUN_2": {
+      "count": 123,
+      "pct_of_total": 41.0
+    },
+    "RUN_3": {
+      "count": 90,
+      "pct_of_total": 30.0
+    }
+  },
+  "per_sector": {
+    "CENTER": 96,
+    "LEFT": 92,
+    "RIGHT": 93
+  },
+  "kpis": {
+    "detection_map50": {
+      "value": 0.957,
+      "target": 0.85,
+      "pass": true,
+      "precision": 0.807,
+      "recall": 0.784,
+      "note": "YOLOv8s-OBB (Stage 6, sunflower_best.pt)"
+    },
+    "readiness_map50": {
+      "value": 0.994,
+      "target": 0.8,
+      "pass": true,
+      "precision": 0.99,
+      "recall": 0.992,
+      "note": "YOLOv8s readiness classifier (Stage 10)"
+    },
+    "coverage_pct": {
+      "value": 93.7,
+      "target": 90.0,
+      "pass": true
+    },
+    "repollinations": {
+      "value": 0,
+      "target": 0,
+      "pass": true,
+      "note": "Verified by Persistent Pollination Manager"
+    },
+    "tsp_improvement_pct": {
+      "value": 64.7,
+      "target": 20.0,
+      "pass": true,
+      "note": "Nearest Neighbour + 2-opt (Stage 11)"
+    },
+    "bloom_filter_gain_pct": {
+      "value": 33.3,
+      "target": 10.0,
+      "pass": true,
+      "note": "Non-ready flowers skipped (Stage 10)"
+    }
+  }
+}
