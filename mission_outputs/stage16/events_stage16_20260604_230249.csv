@@ -1,0 +1,6 @@
+ts,day,drone_id,type,payload_json
+1780585369.711,4,,mission_start,"{""n_drones"":2,""mode"":""full_cycle"",""start_day"":4,""day_max"":8}"
+1780585371.658,4,1,drone_at_base,{}
+1780585373.749,4,0,drone_at_base,{}
+1780585376.207,4,,day_start,"{""day"":4,""counts"":{""not_ready"":26,""opening"":32,""prime_target"":12,""partial_target"":0,""spent"":0},""n_targets"":12}"
+1780585376.207,4,,survey_start,"{""day"":4}"

@@ -1,81 +1,90 @@
 #!/usr/bin/env python3
-import rclpy
-from rclpy.node import Node
-from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
-from px4_msgs.msg import VehicleLocalPosition
-from std_msgs.msg import String
+"""
+swarm_coordinator.py — Stage 14
+
+Fires the global GO signal on /swarm/start after a warmup period
+(so Gazebo + bridge + per-drone nodes are all ready). Then monitors
+both drones' phases via /swarm/peer and announces mission complete
+when both reach DONE.
+"""
+from __future__ import annotations
+
 import json
 
-SECTORS = {
-    0: {'x_min': 0,  'x_max': 7,  'y_min': 0, 'y_max': 20, 'name': 'LEFT'},
-    1: {'x_min': 7,  'x_max': 13, 'y_min': 0, 'y_max': 20, 'name': 'CENTER'},
-    2: {'x_min': 13, 'x_max': 20, 'y_min': 0, 'y_max': 20, 'name': 'RIGHT'},
-}
+import rclpy
+from rclpy.node import Node
+from std_msgs.msg import Bool, String
 
-class SwarmCoordinator(Node):
+
+WARMUP_SEC = 5.0    # seconds to wait before firing /swarm/start
+
+
+class Coordinator(Node):
     def __init__(self):
         super().__init__('swarm_coordinator')
-        px4_qos = QoSProfile(
-            reliability=ReliabilityPolicy.BEST_EFFORT,
-            durability=DurabilityPolicy.TRANSIENT_LOCAL,
-            history=HistoryPolicy.KEEP_LAST, depth=1)
-        self.drone_positions = {i: None for i in range(3)}
-        self.pollinated_flowers = set()
-        for i in range(3):
-            self.create_subscription(VehicleLocalPosition,
-                f'/px4_{i}/fmu/out/vehicle_local_position',
-                lambda msg, d=i: self._pos_cb(msg, d), px4_qos)
-            self.create_subscription(String,
-                f'/drone_{i}/pollination/log',
-                self._poll_cb, 10)
-        self.sector_pub = self.create_publisher(String, '/swarm/sector_map', 10)
-        self.create_timer(5.0, self._status)
-        self._publish_sectors()
-        self.get_logger().info('Swarm coordinator started!')
-        self.get_logger().info('Field divided into 3 sectors:')
-        for d, s in SECTORS.items():
-            self.get_logger().info(f'  Drone {d} → {s["name"]} sector (x: {s["x_min"]}-{s["x_max"]}m, y: {s["y_min"]}-{s["y_max"]}m)')
 
-    def _pos_cb(self, msg, drone_id):
-        self.drone_positions[drone_id] = {'x': msg.x, 'y': msg.y, 'z': msg.z}
+        self.started = False
+        self.completed = False
+        self.phases = {0: 'UNKNOWN', 1: 'UNKNOWN'}
 
-    def _poll_cb(self, msg):
+        self.pub_start = self.create_publisher(Bool,   '/swarm/start',            10)
+        self.pub_event = self.create_publisher(String, '/pollination/swarm/event', 10)
+
+        self.create_subscription(String, '/swarm/peer', self._on_peer, 10)
+
+        self.t0 = self.get_clock().now().nanoseconds * 1e-9
+        self.create_timer(0.5, self._tick)
+
+        self.get_logger().info(
+            f"swarm coordinator online - "
+            f"will fire /swarm/start in {WARMUP_SEC:.0f} s"
+        )
+
+    def _on_peer(self, msg):
         try:
-            data = json.loads(msg.data)
-            key = f'{data.get("flower_x")},{data.get("flower_y")}'
-            if key not in self.pollinated_flowers:
-                self.pollinated_flowers.add(key)
-                self.get_logger().info(f'Flower pollinated! Total: {len(self.pollinated_flowers)}')
-        except: pass
+            d = json.loads(msg.data)
+            did = d.get('drone_id')
+            if did in (0, 1):
+                self.phases[did] = d.get('phase', 'UNKNOWN')
+        except Exception:
+            pass
 
-    def _publish_sectors(self):
-        msg = String()
-        msg.data = json.dumps(SECTORS)
-        self.sector_pub.publish(msg)
+    def _tick(self):
+        now = self.get_clock().now().nanoseconds * 1e-9
 
-    def _status(self):
-        self._publish_sectors()
-        self.get_logger().info('=== SWARM STATUS ===')
-        for i in range(3):
-            pos = self.drone_positions[i]
-            if pos:
-                s = SECTORS[i]
-                in_s = s['x_min'] <= pos['x'] <= s['x_max'] and s['y_min'] <= pos['y'] <= s['y_max']
-                self.get_logger().info(f'  Drone {i}: x={pos["x"]:.1f} y={pos["y"]:.1f} z={pos["z"]:.1f} | In sector: {in_s}')
-            else:
-                self.get_logger().info(f'  Drone {i}: No position data yet')
-        self.get_logger().info(f'  Total flowers pollinated: {len(self.pollinated_flowers)}')
+        if not self.started and now - self.t0 >= WARMUP_SEC:
+            # Publish a few times so we don't lose it to subscriber-not-ready
+            m = Bool()
+            m.data = True
+            for _ in range(5):
+                self.pub_start.publish(m)
+            self.started = True
+            ev = String()
+            ev.data = "*** SWARM GO - both drones launching together ***"
+            self.pub_event.publish(ev)
+            self.get_logger().info(ev.data)
+
+        if (self.started and not self.completed
+                and self.phases[0] == 'DONE'
+                and self.phases[1] == 'DONE'):
+            self.completed = True
+            ev = String()
+            ev.data = "*** SWARM MISSION COMPLETE - both drones landed safely ***"
+            self.pub_event.publish(ev)
+            self.get_logger().info(ev.data)
+
 
 def main(args=None):
     rclpy.init(args=args)
-    node = SwarmCoordinator()
+    n = Coordinator()
     try:
-        rclpy.spin(node)
+        rclpy.spin(n)
     except KeyboardInterrupt:
         pass
     finally:
-        node.destroy_node()
+        n.destroy_node()
         rclpy.shutdown()
+
 
 if __name__ == '__main__':
     main()

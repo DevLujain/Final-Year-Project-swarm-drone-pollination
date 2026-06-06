@@ -1,0 +1,11 @@
+timestamp,day,type,drone_id,payload
+1779761741.157,0,mission_start,,"{""run_id"":""stage15_20260526_101541"",""log_dir"":""/home/joney/Desktop/FYP/mission_outputs/stage15"",""n_drones"":2,""started_at"":1779761741.1509624}"
+1779761741.259,5,day_start,,"{""day"":5}"
+1779761741.259,5,drone_event,0,"{""text"":""D0 day change: -1 \u2192 5""}"
+1779761741.259,5,drone_event,1,"{""text"":""D1 day change: -1 \u2192 5""}"
+1779761747.081,5,orchestrator_event,,"{""text"":""=== PHASE: INIT \u2192 SURVEY (day 5) ===""}"
+1779761747.083,5,phase_change,,"{""from"":""INIT"",""to"":""SURVEY""}"
+1779761747.084,5,orchestrator_event,,"{""text"":""*** DAY 5 \u2014 SURVEY GO ***""}"
+1779761747.084,5,survey_start,,{}
+1779761747.085,5,survey_start,,{}
+1779761747.086,5,survey_start,,{}

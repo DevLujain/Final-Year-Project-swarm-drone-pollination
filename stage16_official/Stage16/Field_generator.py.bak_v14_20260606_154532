@@ -1,0 +1,660 @@
+#!/usr/bin/env python3
+"""
+Field_generator.py  —  Stage 16 (lite, no-cheat)
+=================================================
+Generates the Gazebo world (/tmp/stage16_world.sdf) and the flower
+registry (/tmp/stage16_flowers.json).
+
+CHANGED FROM STAGE 15
+---------------------
+The drone model now embeds two sensors that real drones rely on, both
+salvaged from Stage Secret's quad.sdf.j2 (pure Gazebo plumbing, no IP):
+
+  * A downward camera (~30 Hz, 62° HFOV, 640×480 RGB) on the underside
+    of the body.  Perception consumes its image stream to detect flowers
+    by HSV — replacing Stage 15's god-list cheat.
+
+  * A brush-tip TOF (gpu_lidar single-ray, 50 Hz, 0.005–0.5 m) at the
+    pistil's brush.  Not used by the controller yet — left available for
+    a future contact-detection upgrade.
+
+The world name is renamed `stage16_world` so logs / topics are clean.
+
+Everything else (sunflower geometry, drone bases on y=-1 strip, the
+plugin chain, the field tile) is unchanged.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import math
+import os
+import random
+from dataclasses import dataclass
+from typing import List, Tuple
+
+import yaml
+
+
+WORLD_NAME = "stage16_world"
+
+
+# ────────────────────────────────────────────────────────────────────
+# Helpers
+# ────────────────────────────────────────────────────────────────────
+def _expand(p: str) -> str:
+    return os.path.expanduser(os.path.expandvars(p))
+
+
+def load_config(path: str) -> dict:
+    with open(path, 'r') as f:
+        return yaml.safe_load(f)
+
+
+# Drone accent colours (RGB 0-1), indexed by drone_id.
+DRONE_COLOURS: List[Tuple[float, float, float]] = [
+    (0.10, 0.30, 0.85),   # 0: blue
+    (0.90, 0.45, 0.10),   # 1: orange
+    (0.20, 0.75, 0.30),   # 2: green
+    (0.85, 0.20, 0.65),   # 3: magenta
+    (0.25, 0.80, 0.85),   # 4: cyan
+    (0.85, 0.85, 0.20),   # 5: yellow
+]
+
+
+@dataclass
+class Flower:
+    flower_id:        int
+    x:                float
+    y:                float
+    head_z:           float
+    head_r:           float
+    bloom_start:      int
+    head_azimuth_rad: float
+    head_tilt_rad:    float
+
+
+# ────────────────────────────────────────────────────────────────────
+# Field layout (unchanged from Stage 15)
+# ────────────────────────────────────────────────────────────────────
+def sample_flowers(cfg: dict, rng: random.Random) -> List[Flower]:
+    Lx, Ly = cfg['mission']['field_size_m']
+    margin = 0.7
+    min_spacing = 0.8
+    target = int(cfg['mission']['flower_count_target'])
+    jitter = int(cfg['mission']['flower_count_jitter'])
+    n_target = max(4, target + rng.randint(-jitter, jitter))
+
+    head_z_choices = [1.5, 1.7, 1.9, 2.1]
+    head_r_choices = [0.16, 0.18, 0.20, 0.22]
+
+    bloom_mean  = float(cfg['bloom']['bloom_start_mean_day'])
+    bloom_sigma = float(cfg['bloom']['bloom_start_sigma_days'])
+
+    fm = cfg.get('field_model', {})
+    az_mean_deg   = float(fm.get('head_azimuth_deg',          90.0))
+    az_jitter_deg = float(fm.get('head_azimuth_jitter_deg',   15.0))
+    ti_mean_deg   = float(fm.get('head_tilt_deg',             20.0))
+    ti_jitter_deg = float(fm.get('head_tilt_jitter_deg',      10.0))
+
+    flowers: List[Flower] = []
+    tries = 0
+    while len(flowers) < n_target and tries < 5000:
+        tries += 1
+        x = rng.uniform(margin, Lx - margin)
+        y = rng.uniform(margin, Ly - margin)
+        if all(math.hypot(x - f.x, y - f.y) >= min_spacing for f in flowers):
+            bs = max(0, int(round(rng.gauss(bloom_mean, bloom_sigma))))
+            az_deg = az_mean_deg + rng.uniform(-az_jitter_deg, az_jitter_deg)
+            ti_deg = max(0.0, ti_mean_deg + rng.uniform(-ti_jitter_deg, ti_jitter_deg))
+            flowers.append(Flower(
+                flower_id=len(flowers) + 1,
+                x=round(x, 3), y=round(y, 3),
+                head_z=rng.choice(head_z_choices),
+                head_r=rng.choice(head_r_choices),
+                bloom_start=bs,
+                head_azimuth_rad=math.radians(az_deg),
+                head_tilt_rad=math.radians(ti_deg),
+            ))
+    return flowers
+
+
+def drone_bases(cfg: dict) -> List[Tuple[int, float, float]]:
+    Lx, _ = cfg['mission']['field_size_m']
+    n = int(cfg['swarm']['n_drones'])
+    sep = float(cfg['swarm']['base_separation_m'])
+    pad_y = -1.0
+    total_w = sep * (n - 1)
+    start_x = Lx / 2.0 - total_w / 2.0
+    return [(i, round(start_x + i * sep, 3), pad_y) for i in range(n)]
+
+
+# ────────────────────────────────────────────────────────────────────
+# SDF model builders
+# ────────────────────────────────────────────────────────────────────
+# How far below its head a hidden bud/flower model is parked (out of the
+# downward camera's view). MUST match BURY_DZ in bloom_world.py.
+BLOOM_BURY_DZ = 50.0
+
+
+def flower_model(f: Flower, start_day: int) -> str:
+    """Three co-located models per flower so bloom state can change at
+    runtime (via bloom_world.py + set_pose) without reloading the world:
+
+      stem_{id}    stem + leaves, STATIC, always present
+      bud_{id}     green CLOSED head, kinematic (gravity off, no collision)
+      flower_{id}  yellow OPEN head + brown disc, kinematic
+
+    Exactly one of bud/flower is at head height at a time; the other is
+    parked BLOOM_BURY_DZ below — underground, out of camera view. Initial
+    state reflects start_day: a flower whose bloom_start has already passed
+    starts OPEN, otherwise CLOSED. Heads face straight up so the down-looking
+    camera sees a clean disc and opening is a pure vertical translation
+    (identity orientation -> trivial set_pose).
+    """
+    stem_len = f.head_z
+    open_now = f.bloom_start <= start_day
+    z_head   = f.head_z
+    z_bury   = f.head_z - BLOOM_BURY_DZ
+    bud_z    = z_bury if open_now else z_head
+    flower_z = z_head if open_now else z_bury
+    return f"""
+    <model name="stem_{f.flower_id}">
+      <static>true</static>
+      <pose>{f.x:.3f} {f.y:.3f} 0 0 0 0</pose>
+      <link name="stem">
+        <pose>0 0 {stem_len/2:.3f} 0 0 0</pose>
+        <visual name="v">
+          <geometry><cylinder><radius>0.04</radius>
+            <length>{stem_len:.3f}</length></cylinder></geometry>
+          <material><ambient>0.12 0.55 0.12 1</ambient>
+            <diffuse>0.12 0.55 0.12 1</diffuse></material>
+        </visual>
+      </link>
+      <link name="leaf_l">
+        <pose>-0.18 0 {stem_len*0.6:.3f} 0 0.6 0</pose>
+        <visual name="v">
+          <geometry><ellipsoid><radii>0.22 0.10 0.02</radii></ellipsoid></geometry>
+          <material><ambient>0.15 0.6 0.18 1</ambient>
+            <diffuse>0.15 0.6 0.18 1</diffuse></material>
+        </visual>
+      </link>
+      <link name="leaf_r">
+        <pose>0.18 0 {stem_len*0.7:.3f} 0 -0.6 0</pose>
+        <visual name="v">
+          <geometry><ellipsoid><radii>0.22 0.10 0.02</radii></ellipsoid></geometry>
+          <material><ambient>0.15 0.6 0.18 1</ambient>
+            <diffuse>0.15 0.6 0.18 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="bud_{f.flower_id}">
+      <self_collide>false</self_collide>
+      <pose>{f.x:.3f} {f.y:.3f} {bud_z:.3f} 0 0 0</pose>
+      <link name="head">
+        <gravity>false</gravity>
+        <inertial><mass>0.01</mass>
+          <inertia><ixx>1e-4</ixx><iyy>1e-4</iyy><izz>1e-4</izz>
+            <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz></inertia>
+        </inertial>
+        <visual name="bud">
+          <geometry><sphere><radius>{f.head_r:.3f}</radius></sphere></geometry>
+          <material><ambient>0.18 0.50 0.16 1</ambient>
+            <diffuse>0.26 0.66 0.22 1</diffuse></material>
+        </visual>
+        <visual name="bud_tip">
+          <pose>0 0 {f.head_r*0.6:.3f} 0 0 0</pose>
+          <geometry><sphere><radius>{f.head_r*0.6:.3f}</radius></sphere></geometry>
+          <material><ambient>0.16 0.46 0.14 1</ambient>
+            <diffuse>0.24 0.60 0.20 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="flower_{f.flower_id}">
+      <self_collide>false</self_collide>
+      <pose>{f.x:.3f} {f.y:.3f} {flower_z:.3f} 0 0 0</pose>
+      <link name="head">
+        <gravity>false</gravity>
+        <inertial><mass>0.01</mass>
+          <inertia><ixx>1e-4</ixx><iyy>1e-4</iyy><izz>1e-4</izz>
+            <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz></inertia>
+        </inertial>
+        <visual name="petals">
+          <geometry><cylinder><radius>{f.head_r*1.7:.3f}</radius>
+            <length>0.04</length></cylinder></geometry>
+          <material><ambient>0.98 0.85 0.06 1</ambient>
+            <diffuse>0.98 0.85 0.06 1</diffuse></material>
+        </visual>
+        <visual name="disc">
+          <pose>0 0 0.03 0 0 0</pose>
+          <geometry><cylinder><radius>{f.head_r:.3f}</radius>
+            <length>0.06</length></cylinder></geometry>
+          <material><ambient>0.45 0.27 0.05 1</ambient>
+            <diffuse>0.45 0.27 0.05 1</diffuse></material>
+        </visual>
+      </link>
+    </model>"""
+
+
+def pad_model(name: str, x: float, y: float,
+              colour: Tuple[float, float, float]) -> str:
+    r, g, b = colour
+    return f"""
+    <model name="{name}">
+      <static>true</static>
+      <pose>{x:.3f} {y:.3f} 0.02 0 0 0</pose>
+      <link name="l">
+        <visual name="v">
+          <geometry><cylinder><radius>0.45</radius>
+            <length>0.04</length></cylinder></geometry>
+          <material>
+            <ambient>{r*0.7:.3f} {g*0.7:.3f} {b*0.7:.3f} 1</ambient>
+            <diffuse>{r:.3f} {g:.3f} {b:.3f} 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>"""
+
+
+def drone_model(did: int, x: float, y: float, z: float,
+                colour: Tuple[float, float, float]) -> str:
+    """
+    Stage 16 drone — kinematic body (Stage 14 / 15 lineage) plus:
+      * Downward camera (RGB, 30 Hz)
+      * Downward brush-tip TOF (gpu_lidar single ray, 50 Hz)
+
+    Camera pose:    body bottom (z=-0.025), pitched +π/2 (looks down -Z)
+    TOF brush pose: under brush tip (z=-0.34),  pitched +π/2
+
+    The pitch sign assumes Gazebo's right-hand convention (rotation about
+    +Y by +π/2 takes camera +X-forward to -Z-down).  If the very first
+    `rqt_image_view /world/.../camera/image` shows sky instead of ground,
+    flip the sign of the camera pitch to -π/2.
+    """
+    name = f"drone_{did}"
+    r, g, b = colour
+    # Camera parameters — tuned for HSV-blob perception on a 15×15 field
+    cam_hfov_rad = 62.0 * math.pi / 180.0    # Pi Camera v2 native
+    cam_w        = 640
+    cam_h        = 480
+    cam_hz       = 30
+    # TOF brush
+    tof_min      = 0.005
+    tof_max      = 0.50
+    tof_hz       = 50
+    return f"""
+    <model name="{name}">
+      <pose>{x:.3f} {y:.3f} {z:.3f} 0 0 0</pose>
+      <self_collide>false</self_collide>
+
+      <link name="base_link">
+        <gravity>false</gravity>
+
+        <inertial>
+          <mass>0.135</mass>
+          <inertia>
+            <ixx>0.003</ixx><iyy>0.003</iyy><izz>0.006</izz>
+            <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz>
+          </inertia>
+        </inertial>
+
+        <!-- Body -->
+        <visual name="body">
+          <geometry><box><size>0.16 0.16 0.04</size></box></geometry>
+          <material>
+            <ambient>{r*0.7:.3f} {g*0.7:.3f} {b*0.7:.3f} 1</ambient>
+            <diffuse>{r:.3f} {g:.3f} {b:.3f} 1</diffuse>
+          </material>
+        </visual>
+        <!-- v7: drone collision body REMOVED. Kinematic drones don't need
+             to collide with anything (flowers already have no collision).
+             With it, two drones meeting in one cell triggered a physics
+             blow-up (one launched skyward to ~2217 m, the other slammed into
+             the ground). Removing it lets them pass through each other. -->
+
+        <!-- X-arms -->
+        <visual name="arm_fl">
+          <pose>0.12 0.12 0 0 0 0.7854</pose>
+          <geometry><box><size>0.22 0.018 0.018</size></box></geometry>
+          <material><ambient>0.1 0.1 0.1 1</ambient>
+            <diffuse>0.1 0.1 0.1 1</diffuse></material>
+        </visual>
+        <visual name="arm_fr">
+          <pose>0.12 -0.12 0 0 0 -0.7854</pose>
+          <geometry><box><size>0.22 0.018 0.018</size></box></geometry>
+          <material><ambient>0.1 0.1 0.1 1</ambient>
+            <diffuse>0.1 0.1 0.1 1</diffuse></material>
+        </visual>
+        <visual name="arm_bl">
+          <pose>-0.12 0.12 0 0 0 -0.7854</pose>
+          <geometry><box><size>0.22 0.018 0.018</size></box></geometry>
+          <material><ambient>0.1 0.1 0.1 1</ambient>
+            <diffuse>0.1 0.1 0.1 1</diffuse></material>
+        </visual>
+        <visual name="arm_br">
+          <pose>-0.12 -0.12 0 0 0 0.7854</pose>
+          <geometry><box><size>0.22 0.018 0.018</size></box></geometry>
+          <material><ambient>0.1 0.1 0.1 1</ambient>
+            <diffuse>0.1 0.1 0.1 1</diffuse></material>
+        </visual>
+
+        <!-- Propellers -->
+        <visual name="prop_fl">
+          <pose>0.17 0.17 0.025 0 0 0</pose>
+          <geometry><cylinder><radius>0.075</radius>
+            <length>0.005</length></cylinder></geometry>
+          <material><ambient>0.85 0.1 0.1 0.6</ambient>
+            <diffuse>0.85 0.1 0.1 0.6</diffuse></material>
+        </visual>
+        <visual name="prop_fr">
+          <pose>0.17 -0.17 0.025 0 0 0</pose>
+          <geometry><cylinder><radius>0.075</radius>
+            <length>0.005</length></cylinder></geometry>
+          <material><ambient>0.85 0.1 0.1 0.6</ambient>
+            <diffuse>0.85 0.1 0.1 0.6</diffuse></material>
+        </visual>
+        <visual name="prop_bl">
+          <pose>-0.17 0.17 0.025 0 0 0</pose>
+          <geometry><cylinder><radius>0.075</radius>
+            <length>0.005</length></cylinder></geometry>
+          <material><ambient>0.85 0.1 0.1 0.6</ambient>
+            <diffuse>0.85 0.1 0.1 0.6</diffuse></material>
+        </visual>
+        <visual name="prop_br">
+          <pose>-0.17 -0.17 0.025 0 0 0</pose>
+          <geometry><cylinder><radius>0.075</radius>
+            <length>0.005</length></cylinder></geometry>
+          <material><ambient>0.85 0.1 0.1 0.6</ambient>
+            <diffuse>0.85 0.1 0.1 0.6</diffuse></material>
+        </visual>
+
+        <!-- Forward marker -->
+        <visual name="forward_marker">
+          <pose>0.085 0 0.022 0 0 0</pose>
+          <geometry><box><size>0.04 0.025 0.005</size></box></geometry>
+          <material><ambient>1.0 1.0 0.05 1</ambient>
+            <diffuse>1.0 1.0 0.05 1</diffuse></material>
+        </visual>
+
+        <!-- Pistil rod -->
+        <visual name="pistil">
+          <pose>0 0 -0.17 0 0 0</pose>
+          <geometry><cylinder><radius>0.005</radius>
+            <length>0.30</length></cylinder></geometry>
+          <material><ambient>0.95 0.95 0.95 1</ambient>
+            <diffuse>0.95 0.95 0.95 1</diffuse></material>
+        </visual>
+        <visual name="brush">
+          <pose>0 0 -0.325 0 0 0</pose>
+          <geometry><sphere><radius>0.015</radius></sphere></geometry>
+          <material><ambient>0.45 0.45 0.50 1</ambient>
+            <diffuse>0.55 0.55 0.60 1</diffuse></material>
+        </visual>
+
+        <!-- ── NEW: downward RGB camera (HSV perception) ── -->
+        <sensor name="camera" type="camera">
+          <pose>0 0 -0.025 0 1.5708 0</pose>
+          <update_rate>{cam_hz}</update_rate>
+          <camera>
+            <horizontal_fov>{cam_hfov_rad:.4f}</horizontal_fov>
+            <image>
+              <width>{cam_w}</width>
+              <height>{cam_h}</height>
+              <format>R8G8B8</format>
+            </image>
+            <clip><near>0.05</near><far>100</far></clip>
+          </camera>
+          <always_on>1</always_on>
+          <visualize>true</visualize>
+          <topic>/world/{WORLD_NAME}/model/{name}/link/base_link/sensor/camera/image</topic>
+        </sensor>
+
+        <!-- ── NEW: brush-tip TOF (contact detection — available, not yet wired) ── -->
+        <sensor name="tof_brush" type="gpu_lidar">
+          <pose>0 0 -0.34 0 1.5708 0</pose>
+          <update_rate>{tof_hz}</update_rate>
+          <lidar>
+            <scan>
+              <horizontal><samples>1</samples><resolution>1</resolution>
+                <min_angle>0</min_angle><max_angle>0</max_angle></horizontal>
+              <vertical><samples>1</samples><resolution>1</resolution>
+                <min_angle>0</min_angle><max_angle>0</max_angle></vertical>
+            </scan>
+            <range><min>{tof_min}</min>
+                   <max>{tof_max}</max>
+                   <resolution>0.005</resolution></range>
+          </lidar>
+          <always_on>1</always_on>
+          <visualize>false</visualize>
+          <topic>/world/{WORLD_NAME}/model/{name}/link/base_link/sensor/tof_brush/scan</topic>
+        </sensor>
+      </link>
+
+      <plugin filename="gz-sim-velocity-control-system"
+              name="gz::sim::systems::VelocityControl">
+      </plugin>
+
+      <plugin filename="gz-sim-pose-publisher-system"
+              name="gz::sim::systems::PosePublisher">
+        <publish_link_pose>false</publish_link_pose>
+        <publish_visual_pose>false</publish_visual_pose>
+        <publish_collision_pose>false</publish_collision_pose>
+        <publish_model_pose>true</publish_model_pose>
+        <publish_nested_model_pose>false</publish_nested_model_pose>
+        <use_pose_vector_msg>false</use_pose_vector_msg>
+        <static_publisher>false</static_publisher>
+        <update_frequency>50</update_frequency>
+      </plugin>
+    </model>"""
+
+
+def field_tile(Lx: float, Ly: float) -> str:
+    return f"""
+    <model name="field_tile">
+      <static>true</static>
+      <pose>{Lx/2:.3f} {Ly/2:.3f} 0.005 0 0 0</pose>
+      <link name="l">
+        <visual name="v">
+          <geometry><box><size>{Lx:.3f} {Ly:.3f} 0.01</size></box></geometry>
+          <material>
+            <ambient>0.30 0.20 0.10 1</ambient>
+            <diffuse>0.40 0.27 0.15 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>"""
+
+
+# ────────────────────────────────────────────────────────────────────
+# Full SDF
+# ────────────────────────────────────────────────────────────────────
+def build_sdf(cfg: dict, flowers: List[Flower],
+              bases: List[Tuple[int, float, float]]) -> str:
+    Lx, Ly = cfg['mission']['field_size_m']
+
+    cam_x = Lx / 2.0
+    cam_y = -7.0
+    cam_z = 8.0
+    cam_pitch = 0.55
+    cam_yaw   = 1.5708
+
+    flowers_xml = "\n".join(flower_model(f, int(cfg['mode']['current_day'])) for f in flowers)
+    pads_xml = "\n".join(
+        pad_model(f"pad_{did}", bx, by, DRONE_COLOURS[did % len(DRONE_COLOURS)])
+        for did, bx, by in bases
+    )
+    drones_xml = "\n".join(
+        drone_model(did, bx, by, 0.10,
+                    DRONE_COLOURS[did % len(DRONE_COLOURS)])
+        for did, bx, by in bases
+    )
+    tile_xml = field_tile(Lx, Ly)
+
+    return f"""<?xml version="1.0" ?>
+<!--
+  {WORLD_NAME}.sdf — generated by Field_generator.py (Stage 16, lite)
+  Same Harmonic-friendly SDF 1.9 template as Stage 14/15, with downward
+  camera + brush-tip TOF on each drone for genuine perception.
+-->
+<sdf version="1.9">
+  <world name="{WORLD_NAME}">
+
+    <physics name="1ms" type="ignored">
+      <max_step_size>0.004</max_step_size>
+      <real_time_factor>{float(cfg['simulation']['real_time_factor'])}</real_time_factor>
+      <real_time_update_rate>250</real_time_update_rate>
+    </physics>
+
+    <plugin filename="gz-sim-physics-system"
+            name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-sensors-system"
+            name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+    <plugin filename="gz-sim-scene-broadcaster-system"
+            name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="gz-sim-user-commands-system"
+            name="gz::sim::systems::UserCommands"/>
+    <plugin filename="gz-sim-contact-system"
+            name="gz::sim::systems::Contact"/>
+
+    <gravity>0 0 -9.8</gravity>
+    <atmosphere type="adiabatic"/>
+
+    <gui fullscreen="0">
+      <camera name="user_camera">
+        <pose>{cam_x:.2f} {cam_y:.2f} {cam_z:.2f} 0 {cam_pitch:.2f} {cam_yaw:.4f}</pose>
+      </camera>
+    </gui>
+
+    <scene>
+      <grid>false</grid>
+      <ambient>0.95 0.95 0.95</ambient>
+      <background>0.65 0.78 0.95</background>
+      <sky/>
+    </scene>
+
+    <light name="sun" type="directional">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 12 0 0 0</pose>
+      <diffuse>1.0 0.97 0.9 1</diffuse>
+      <specular>0.3 0.3 0.3 1</specular>
+      <direction>-0.3 0.2 -0.9</direction>
+      <attenuation>
+        <range>1000</range>
+        <constant>0.9</constant>
+        <linear>0.005</linear>
+        <quadratic>0.001</quadratic>
+      </attenuation>
+    </light>
+
+    <model name="ground_plane">
+      <static>true</static>
+      <link name="link">
+        <collision name="c">
+          <geometry><plane><normal>0 0 1</normal>
+            <size>50 50</size></plane></geometry>
+        </collision>
+        <visual name="v">
+          <cast_shadows>false</cast_shadows>
+          <geometry><plane><normal>0 0 1</normal>
+            <size>50 50</size></plane></geometry>
+          <material>
+            <ambient>0.30 0.50 0.22 1</ambient>
+            <diffuse>0.30 0.50 0.22 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    {tile_xml}
+    {pads_xml}
+    {drones_xml}
+    {flowers_xml}
+
+  </world>
+</sdf>
+"""
+
+
+# ────────────────────────────────────────────────────────────────────
+# Outputs
+# ────────────────────────────────────────────────────────────────────
+def write_flowers_json(path: str, flowers: List[Flower],
+                       bases: List[Tuple[int, float, float]],
+                       cfg: dict):
+    """
+    Stage 16 note: this JSON exists only so the orchestrator can log
+    multi-day bloom stats (count of prime/partial/spent per day).  The
+    drone-side code MUST NOT read it — perception is the only source of
+    flower information for the drones.
+    """
+    data = {
+        'n_drones':          int(cfg['swarm']['n_drones']),
+        'field_size_m':      list(cfg['mission']['field_size_m']),
+        'bloom_window_days': int(cfg['mission']['bloom_window_days']),
+        'drone_bases': [
+            {'drone_id': did, 'base_x': bx, 'base_y': by}
+            for did, bx, by in bases
+        ],
+        'flowers': [
+            {'flower_id': f.flower_id,
+             'x': f.x, 'y': f.y,
+             'head_z': f.head_z, 'head_r': f.head_r,
+             'head_azimuth_rad': round(f.head_azimuth_rad, 4),
+             'head_tilt_rad':    round(f.head_tilt_rad, 4),
+             'bloom_start': f.bloom_start}
+            for f in flowers
+        ],
+    }
+    with open(path, 'w') as f:
+        json.dump(data, f, indent=2)
+
+
+def write_drone_specs(path: str, bases):
+    specs = [{'drone_id': did, 'base_x': bx, 'base_y': by}
+             for did, bx, by in bases]
+    with open(path, 'w') as f:
+        json.dump(specs, f, indent=2)
+
+
+# ────────────────────────────────────────────────────────────────────
+# Main
+# ────────────────────────────────────────────────────────────────────
+def main():
+    here = os.path.dirname(os.path.abspath(__file__))
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--config', default=os.path.join(here, 'stage16_config.yaml'))
+    parser.add_argument('--world',  default='/tmp/stage16_world.sdf')
+    parser.add_argument('--json',   default='/tmp/stage16_flowers.json')
+    parser.add_argument('--specs',  default=os.path.join(here, 'drone_specs.json'))
+    args = parser.parse_args()
+
+    cfg = load_config(_expand(args.config))
+    seed = int(cfg['simulation']['random_seed'])
+    rng = random.Random(seed)
+
+    flowers = sample_flowers(cfg, rng)
+    bases   = drone_bases(cfg)
+
+    sdf = build_sdf(cfg, flowers, bases)
+    with open(_expand(args.world), 'w') as f:
+        f.write(sdf)
+    write_flowers_json(_expand(args.json), flowers, bases, cfg)
+    write_drone_specs(_expand(args.specs), bases)
+
+    print(f"── Field_generator (Stage 16) ──")
+    print(f"  world name: {WORLD_NAME}")
+    print(f"  field:    {cfg['mission']['field_size_m'][0]:.1f} × "
+          f"{cfg['mission']['field_size_m'][1]:.1f} m")
+    print(f"  drones:   {len(bases)}  (bases on y=-1.0 strip, with cameras + TOF)")
+    print(f"  flowers:  {len(flowers)}  (seed {seed})")
+    print(f"  world:    {args.world}")
+    print(f"  flowers:  {args.json}")
+
+
+if __name__ == '__main__':
+    main()

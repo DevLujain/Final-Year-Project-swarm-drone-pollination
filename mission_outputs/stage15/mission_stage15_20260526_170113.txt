@@ -1,0 +1,12 @@
+Stage 15 mission summary — run stage15_20260526_170113
+  mode:        full_cycle
+  days run:    started day; ended day 8
+  n_drones:    2
+  flowers:     70
+  pollinated:  0
+  duration:    206.0 s
+
+Logs:
+  events:        /home/joney/Desktop/FYP/mission_outputs/stage15/events_stage15_20260526_170113.csv
+  pollinations:  /home/joney/Desktop/FYP/mission_outputs/stage15/pollination_stage15_20260526_170113.csv
+  telemetry:     /home/joney/Desktop/FYP/mission_outputs/stage15/telemetry_stage15_20260526_170113.csv

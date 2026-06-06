@@ -1,0 +1,114 @@
+# stage16_config.yaml — Stage 16 v13
+# Flowers open from day 1 (bloom_start_mean=1).
+# Each day more flowers open. Drones discover and pollinate
+# only newly-opened ones. Mission ends when all pollinated.
+
+swarm:
+  n_drones: 2
+  base_separation_m: 1.2
+
+mission:
+  field_size_m: [20.0, 20.0]
+  flower_count_target: 85
+  flower_count_jitter: 10
+  bloom_window_days: 8
+
+mode:
+  type: full_cycle
+  current_day: 1
+  survey_only: false
+
+simulation:
+  real_time_factor: 1.0
+  random_seed: 42
+  gazebo_gui: true
+
+drone:
+  mass_kg: 0.135
+  max_thrust_N: 3.92
+  battery_full_minutes: 10.0
+  battery_rtb_threshold_pct: 20.0
+  battery_swap_seconds: 2.0
+  cruise_speed_m_s: 2.0
+  approach_speed_m_s: 0.4
+  contact_descent_speed_m_s: 0.08
+  pistil_length_m: 0.30
+  brush_sweep_distance_m: 0.06
+  brush_sweep_duration_s: 4.0
+  tof_contact_distance_m: 0.03
+
+bloom:
+  bloom_start_mean_day: 3      # ~4-6 open on day 1, ramps daily
+  bloom_start_sigma_days: 1.5
+  bloom_seed: -1               # -1 = new random bloom pattern every run (layout stays seed-fixed); set a number to reproduce a run
+  prime_target_window_days: [0, 8]   # ANY open flower is a target
+  partial_target_window_days: [0, 0] # unused — all open = prime
+
+field_model:
+  head_azimuth_deg:        90.0
+  head_azimuth_jitter_deg: 15.0
+  head_tilt_deg:           20.0
+  head_tilt_jitter_deg:    10.0
+
+mission_altitudes:
+  survey_m:   4.0
+  cruise_m:   3.0
+  approach_m: 1.5
+
+perception:
+  hfov_deg:                62.0
+  image_width:             640
+  image_height:            480
+  dedup_radius_m:          0.40
+  cluster_match_radius_m:  0.60
+  center_weight_power:     2.0
+  min_cluster_samples:     3
+  min_brown_samples:       2
+  snapshot_publish_period_s: 5.0
+  min_blob_area_px:        300
+  max_blob_area_px:        60000
+  min_brown_area_px:       40
+  hsv_h_min:               18
+  hsv_h_max:               36
+  hsv_s_min:               130
+  hsv_v_min:               130
+  hsv_brown_h_min:         19    # calibrated: disc renders H 20-22
+  hsv_brown_h_max:         24
+  hsv_brown_s_min:         140   # soil S=98 excluded
+  hsv_brown_v_min:         100
+  hsv_brown_v_max:         220   # petals V~254 excluded
+  hsv_green_h_min:         45    # calibrated: bud renders H 51-61
+  hsv_green_h_max:         66
+  hsv_green_s_min:         90    # grass S=84 excluded
+  hsv_green_v_min:         140   # leaf/stem V~118 excluded; keeps bud sphere top
+  image_to_world_x_sign:   -1
+  image_to_world_y_sign:   -1
+  image_swap_xy:           true
+  min_altitude_for_detect_m: 2.50
+  field_size_x_m:          20.0
+  field_size_y_m:          20.0
+  field_margin_m:          0.5
+
+survey:
+  n_passes: 1
+
+height_probe:
+  descent_top_z_m:    2.60
+  descent_bottom_z_m: 1.80
+  tof_valid_max_m:    0.45
+
+orchestrator:
+  init_dwell_s:      6.0
+  merge_dwell_s:     2.0
+  day_settle_s:      3.0
+  pollinate_grace_s: 5.0
+
+dashboard:
+  enabled: true
+  port:    5000
+  host:    "127.0.0.1"
+
+logging:
+  log_directory: "~/Desktop/FYP/mission_outputs/stage16"
+  run_id_prefix: "stage16"
+  telemetry_hz:  2.0

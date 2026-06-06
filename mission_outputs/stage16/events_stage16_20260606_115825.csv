@@ -1,0 +1,4 @@
+ts,day,drone_id,type,payload_json
+1780718305.578,1,,mission_start,"{""n_drones"":2,""start_day"":1,""day_max"":8,""n_flowers"":60}"
+1780718309.901,1,0,drone_at_base,{}
+1780718310.345,1,1,drone_at_base,{}

@@ -1,0 +1,21 @@
+============================================
+  Stage 15 — Mission Summary
+  run_id: stage15_20260524_203522
+============================================
+
+Mode:                 single_day
+Drones:               2
+Final day:            5
+Mission duration:     512.5 wall-seconds
+Total flowers pollinated: 22
+
+Per-day breakdown:
+  Day 5: 22 pollinated
+
+mTSP tour summary (per day):
+  Day 5: D0=43.7m (12 flowers), D1=43.6m (12 flowers)
+
+--- Files ---
+  Events:    /home/joney/Desktop/FYP/mission_outputs/stage15/pollination_log_stage15_20260524_203522.csv
+  Telemetry: /home/joney/Desktop/FYP/mission_outputs/stage15/telemetry_stage15_20260524_203522.csv
+  Summary:   /home/joney/Desktop/FYP/mission_outputs/stage15/mission_stage15_20260524_203522.txt

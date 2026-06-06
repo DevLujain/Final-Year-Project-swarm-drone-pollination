@@ -1,0 +1,6 @@
+ts,day,drone_id,type,payload_json
+1780639292.117,1,,mission_start,"{""n_drones"":2,""start_day"":1,""day_max"":8,""n_flowers"":70}"
+1780639293.86,1,0,drone_at_base,{}
+1780639293.962,1,1,drone_at_base,{}
+1780639298.6,1,,day_start,"{""day"":1,""counts"":{""not_ready"":67,""opening"":3,""prime"":0,""partial"":0,""spent"":0},""n_targets"":0,""already_pollinated"":0}"
+1780639298.6,1,,survey_start,"{""day"":1,""n_targets"":0}"

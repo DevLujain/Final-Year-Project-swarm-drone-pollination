@@ -1,0 +1,17 @@
+ts,day,drone_id,type,payload_json
+1780579898.708,1,,mission_start,"{""n_drones"":2,""mode"":""full_cycle"",""start_day"":1,""day_max"":8}"
+1780579900.113,1,0,drone_at_base,{}
+1780579900.549,1,1,drone_at_base,{}
+1780579905.194,1,,day_start,"{""day"":1,""counts"":{""not_ready"":67,""opening"":3,""prime_target"":0,""partial_target"":0,""spent"":0}}"
+1780579905.195,1,,survey_start,"{""day"":1}"
+1780579967.049,1,1,survey_done,"{""n_observed"":0}"
+1780579968.413,1,0,survey_done,"{""n_observed"":0}"
+1780579970.695,1,,landmark_map,"{""known"":0,""new_today"":0,""pollinated"":0,""routed"":0}"
+1780579970.697,1,,landmark_map,"{""known"":0,""new_today"":0,""pollinated"":0,""routed"":0}"
+1780579970.697,1,,merge_complete,"{""unique_targets"":0}"
+1780579970.697,1,,routes_assigned,"{""route_counts"":{""0"":0,""1"":0},""day"":1}"
+1780579971.049,1,1,drone_at_base,{}
+1780579971.113,1,0,drone_at_base,{}
+1780579976.191,1,,day_complete,"{""day"":1,""pollinated_today"":0}"
+1780579980.193,2,,day_start,"{""day"":2,""counts"":{""not_ready"":58,""opening"":12,""prime_target"":0,""partial_target"":0,""spent"":0}}"
+1780579980.194,2,,survey_start,"{""day"":2}"

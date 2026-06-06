@@ -1,0 +1,11 @@
+Stage 16 mission summary — run stage16_20260528_005806
+  mode:        full_cycle
+  ended day:   8
+  n_drones:    2
+  pollinated:  0
+  duration:    313.5 s
+
+Logs:
+  events:       /home/joney/Desktop/Drone_Testing_Infrastructure/mission_outputs/stage16/events_stage16_20260528_005806.csv
+  pollinations: /home/joney/Desktop/Drone_Testing_Infrastructure/mission_outputs/stage16/pollination_stage16_20260528_005806.csv
+  telemetry:    /home/joney/Desktop/Drone_Testing_Infrastructure/mission_outputs/stage16/telemetry_stage16_20260528_005806.csv

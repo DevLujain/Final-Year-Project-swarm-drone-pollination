@@ -1,0 +1,12 @@
+[
+  {
+    "drone_id": 0,
+    "base_x": 9.4,
+    "base_y": -1.0
+  },
+  {
+    "drone_id": 1,
+    "base_x": 10.6,
+    "base_y": -1.0
+  }
+]

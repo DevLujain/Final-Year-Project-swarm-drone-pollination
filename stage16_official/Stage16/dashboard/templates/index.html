@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Stage 16 — Pollination Mission Control</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+  <!-- ── Header ──────────────────────────────────────────────── -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">✿</span>
+      <span class="title">Stage 16 — Pollination Mission Control</span>
+      <span class="subtitle">lite · perception-driven · no cheat</span>
+    </div>
+    <div class="status">
+      <div class="day-badge">Day <span id="day-num">—</span></div>
+      <div class="conn">
+        <span class="dot" id="conn-dot"></span>
+        <span id="conn-label">connecting…</span>
+      </div>
+      <div class="elapsed">⏱ <span id="elapsed">0.0</span> s</div>
+    </div>
+  </header>
+
+  <!-- ── Top row: coverage + per-drone cards + controls ──────── -->
+  <section class="row top-row">
+
+    <div class="card coverage-card">
+      <div class="card-title">MISSION TOTAL</div>
+      <div class="coverage-headline">
+        <span id="coverage-pct" class="big">0.0</span><span class="big-unit">%</span>
+      </div>
+      <div class="coverage-fraction">
+        <span id="poll-num">0</span> / <span id="poll-den">0</span>
+        flowers pollinated
+      </div>
+      <div class="bar"><div id="coverage-bar" class="bar-fill"></div></div>
+      <div class="coverage-sub" id="mission-status">awaiting drones…</div>
+    </div>
+
+    <div class="card drones-card" id="drones-card">
+      <!-- drone slots injected by JS -->
+    </div>
+
+    <div class="card controls-card">
+      <div class="card-title">CONTROLS</div>
+      <button id="btn-reset" class="btn primary">Reset view</button>
+      <div class="hint">
+        Reset clears the dashboard's local view (events,&nbsp;observations,
+        daily totals).  It does NOT command the drones — the orchestrator
+        owns the mission.
+      </div>
+      <div class="legend">
+        <div class="legend-item"><span class="swatch obs"></span>observed</div>
+        <div class="legend-item"><span class="swatch pol"></span>pollinated</div>
+        <div class="legend-item"><span class="swatch dr0"></span>drone&nbsp;0</div>
+        <div class="legend-item"><span class="swatch dr1"></span>drone&nbsp;1</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Middle row: field map + metrics ───────────────────────── -->
+  <section class="row mid-row">
+
+    <div class="card map-card">
+      <div class="card-title">
+        FIELD MAP
+        <span class="size-note">15 × 15 m</span>
+      </div>
+      <div class="map-wrap">
+        <canvas id="map-canvas" width="480" height="480"></canvas>
+      </div>
+      <div class="map-key">
+        <span class="key-item"><span class="swatch dr0"></span>LEFT&nbsp;(x&lt;7.5)</span>
+        <span class="key-item"><span class="swatch dr1"></span>RIGHT&nbsp;(x≥7.5)</span>
+      </div>
+    </div>
+
+    <div class="card metrics-card">
+      <div class="card-title">METRICS</div>
+      <div class="metric">
+        <div class="metric-label">Observed (cumulative)</div>
+        <div class="metric-value" id="m-observed">0</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Pollinated</div>
+        <div class="metric-value" id="m-pollinated">0</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Current day</div>
+        <div class="metric-value" id="m-day">—</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Drone 0 battery</div>
+        <div class="bar small"><div id="batt-0" class="bar-fill green"></div></div>
+        <div class="metric-foot"><span id="batt-0-pct">—</span>%</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Drone 1 battery</div>
+        <div class="bar small"><div id="batt-1" class="bar-fill green"></div></div>
+        <div class="metric-foot"><span id="batt-1-pct">—</span>%</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Last update</div>
+        <div class="metric-value small" id="m-lastupd">—</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Bottom row: event log + daily summary table ───────────── -->
+  <section class="row bot-row">
+
+    <div class="card events-card">
+      <div class="card-title">EVENT STREAM
+        <span class="size-note"><span id="ev-count">0</span> shown</span>
+      </div>
+      <div class="events-scroll">
+        <table class="evtable" id="ev-table">
+          <thead>
+            <tr><th>time</th><th>type</th><th>drone</th><th>detail</th></tr>
+          </thead>
+          <tbody id="ev-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card daily-card">
+      <div class="card-title">DAILY MISSION SUMMARY</div>
+      <table class="dailytable" id="daily-table">
+        <thead>
+          <tr>
+            <th>Day</th>
+            <th>New&nbsp;scans</th>
+            <th>Pollinated</th>
+            <th>Cumulative</th>
+          </tr>
+        </thead>
+        <tbody id="daily-body">
+          <tr class="placeholder"><td colspan="4">awaiting first day…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer class="footer">
+    Stage 16 dashboard · ROS 2 Jazzy · Gazebo Harmonic ·
+    <span class="dim">If the map mirrors Gazebo, flip
+      <code>perception.image_to_world_x_sign</code> in
+      <code>stage16_config.yaml</code>.</span>
+  </footer>
+
+  <script src="{{ url_for('static', filename='dashboard.js') }}"></script>
+</body>
+</html>

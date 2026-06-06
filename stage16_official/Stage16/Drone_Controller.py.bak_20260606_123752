@@ -1,0 +1,652 @@
+#!/usr/bin/env python3
+"""
+Drone_Controller.py — Stage 16 (v12-clean)
+==========================================
+One instance per drone. Clean single-pass survey with fast proximity
+detection against /bloom/targets. No HEIGHT_PROBE. No perception_node
+dependency for routing — orchestrator provides exact flower positions.
+
+SURVEY: one horizontal lawnmower pass at survey_altitude → observe all
+open flowers within obs_radius → publish observations → signal survey_done
+→ await route → pollinate assigned flowers → land → DAY_DONE.
+
+Cross-day: orchestrator never re-routes pollinated flowers (tracks by fid).
+Drone just executes whatever route it receives each day.
+"""
+
+from __future__ import annotations
+
+import json
+import math
+import time
+from dataclasses import dataclass
+
+import rclpy
+from rclpy.node import Node
+from rclpy.qos import (QoSProfile, ReliabilityPolicy,
+                        DurabilityPolicy, HistoryPolicy)
+
+from geometry_msgs.msg import Twist, PoseStamped
+from std_msgs.msg import Bool, Int32, Float32, String
+
+
+# ── Phases ────────────────────────────────────────────────────────
+(IDLE, TAKEOFF, SURVEY, RETURN_TO_BASE, LAND_SURVEY,
+ AWAIT_ROUTE, GOTO_FLOWER, DESCEND, BRUSH, ASCEND_GENTLE,
+ RETREAT, RTB, LAND_RTB, DAY_DONE,
+ RTB_BATTERY, RECHARGING) = range(16)
+
+PHASE_NAMES = {
+    IDLE: 'IDLE', TAKEOFF: 'TAKEOFF', SURVEY: 'SURVEY',
+    RETURN_TO_BASE: 'RETURN_TO_BASE', LAND_SURVEY: 'LAND_SURVEY',
+    AWAIT_ROUTE: 'AWAIT_ROUTE', GOTO_FLOWER: 'GOTO_FLOWER',
+    DESCEND: 'DESCEND', BRUSH: 'BRUSH', ASCEND_GENTLE: 'ASCEND_GENTLE',
+    RETREAT: 'RETREAT', RTB: 'RTB', LAND_RTB: 'LAND_RTB',
+    DAY_DONE: 'DAY_DONE', RTB_BATTERY: 'RTB_BATTERY',
+    RECHARGING: 'RECHARGING',
+}
+
+ACTIVE_PHASES = {TAKEOFF, SURVEY, RETURN_TO_BASE, LAND_SURVEY,
+                 GOTO_FLOWER, DESCEND, BRUSH, ASCEND_GENTLE,
+                 RETREAT, RTB, LAND_RTB, RTB_BATTERY}
+
+
+@dataclass
+class Lim:
+    vmax_xy: float
+    vmax_z:  float
+
+
+def clamp(v, lo, hi): return max(lo, min(hi, v))
+def dist2(a, b):      return math.hypot(a[0]-b[0], a[1]-b[1])
+
+
+class DroneController(Node):
+
+    def __init__(self):
+        super().__init__('drone_controller')
+
+        # ── Parameters ────────────────────────────────────────────
+        self.declare_parameter('drone_id',                   0)
+        self.declare_parameter('n_drones',                   2)
+        self.declare_parameter('base_x',                     7.5)
+        self.declare_parameter('base_y',                    -1.0)
+        self.declare_parameter('base_z',                     0.10)
+        self.declare_parameter('field_size_x',              15.0)
+        self.declare_parameter('field_size_y',              15.0)
+        self.declare_parameter('survey_altitude_m',          4.0)
+        self.declare_parameter('cruise_altitude_m',          3.0)
+        self.declare_parameter('approach_altitude_m',        1.5)
+        self.declare_parameter('cruise_speed_m_s',           2.0)
+        self.declare_parameter('approach_speed_m_s',         0.4)
+        self.declare_parameter('contact_descent_speed_m_s',  0.08)
+        self.declare_parameter('pistil_length_m',            0.30)
+        self.declare_parameter('tof_contact_m',              0.03)
+        self.declare_parameter('brush_sweep_duration_s',     4.0)
+        self.declare_parameter('observation_radius_m',       3.0)
+        self.declare_parameter('strip_pitch_m',              4.0)
+        self.declare_parameter('battery_full_minutes',      10.0)
+        self.declare_parameter('battery_rtb_threshold_pct', 20.0)
+        self.declare_parameter('battery_swap_duration_s',    2.0)
+
+        self.did      = int(self.get_parameter('drone_id').value)
+        self.n_drones = int(self.get_parameter('n_drones').value)
+        self.base_x   = float(self.get_parameter('base_x').value)
+        self.base_y   = float(self.get_parameter('base_y').value)
+        self.base_z   = float(self.get_parameter('base_z').value)
+        self.Lx       = float(self.get_parameter('field_size_x').value)
+        self.Ly       = float(self.get_parameter('field_size_y').value)
+        self.survey_z = float(self.get_parameter('survey_altitude_m').value)
+        self.cruise_z = float(self.get_parameter('cruise_altitude_m').value)
+        self.v_cruise = float(self.get_parameter('cruise_speed_m_s').value)
+        self.v_appr   = float(self.get_parameter('approach_speed_m_s').value)
+        self.v_contact= float(self.get_parameter('contact_descent_speed_m_s').value)
+        self.pistil_L = float(self.get_parameter('pistil_length_m').value)
+        self.tof_c    = float(self.get_parameter('tof_contact_m').value)
+        self.brush_dur= float(self.get_parameter('brush_sweep_duration_s').value)
+        self.obs_r    = float(self.get_parameter('observation_radius_m').value)
+        self.strip_p  = float(self.get_parameter('strip_pitch_m').value)
+        self.batt_full_min   = float(self.get_parameter('battery_full_minutes').value)
+        self.batt_rtb_thresh = float(self.get_parameter('battery_rtb_threshold_pct').value)
+        self.batt_swap_dur   = float(self.get_parameter('battery_swap_duration_s').value)
+
+        self.ns = f'drone_{self.did}'
+
+        # Per-phase velocity caps
+        self.limits = {
+            TAKEOFF:        Lim(0.8,  1.2),
+            SURVEY:         Lim(self.v_cruise, 1.0),
+            RETURN_TO_BASE: Lim(self.v_cruise, 1.0),
+            LAND_SURVEY:    Lim(0.4,  0.8),
+            GOTO_FLOWER:    Lim(self.v_cruise, 1.0),
+            DESCEND:        Lim(self.v_appr, 0.24),
+            BRUSH:          Lim(0.10, self.v_contact),
+            ASCEND_GENTLE:  Lim(0.10, 0.15),
+            RETREAT:        Lim(self.v_appr, 0.6),
+            RTB:            Lim(self.v_cruise, 1.0),
+            LAND_RTB:       Lim(0.4,  0.8),
+            RTB_BATTERY:    Lim(self.v_cruise, 1.0),
+            RECHARGING:     Lim(0.0,  0.0),
+        }
+
+        # PID
+        self.kp_xy   = 1.2
+        self.kp_z    = 1.5
+        self.pos_tol = 0.40
+        self.z_tol   = 0.20
+
+        # State
+        self.phase   = IDLE
+        self.pose    = None
+        self.day     = -1
+        self.targets: list = []           # open flowers from /bloom/targets
+        self.all_flowers: list = []        # ALL flowers (open+closed) from /bloom/all_flowers
+        self.observed_ids: set = set()
+        self.survey_wps:  list = []
+        self.survey_wp_i  = 0
+        self.route:       list = []       # staging buffer
+        self.route_received_for_day = -1
+        self._active_route: list = []
+        self._active_idx   = 0
+        self._active_target = None
+        self.contact_z = 0.0
+        self._contact_t0 = 0.0
+        self._contact_t0_set = False
+        self._mission_complete = False
+        self._swap_start_t = 0.0
+        self.start_received = False
+
+        # State vars missing from __init__ — declare all here
+        self.targets:       list  = []
+        self.all_flowers:   list  = []
+        self.observed_ids:  set   = set()
+        self.survey_wps:    list  = []
+        self.route:         list  = []
+        self.route_i:       int   = 0
+        self._active_route: list  = []
+        self.phase_t0:      float = time.time()
+
+        # Battery
+        self.batt_pct = 100.0
+        self.drain_per_s = 100.0 / max(60.0, self.batt_full_min * 60.0)
+        self.last_batt_tick = time.time()
+
+        # QoS
+        sensor_qos = QoSProfile(depth=10,
+                                 reliability=ReliabilityPolicy.BEST_EFFORT,
+                                 history=HistoryPolicy.KEEP_LAST)
+        latched_qos = QoSProfile(depth=1,
+                                  reliability=ReliabilityPolicy.RELIABLE,
+                                  durability=DurabilityPolicy.TRANSIENT_LOCAL,
+                                  history=HistoryPolicy.KEEP_LAST)
+
+        # Publishers
+        self.pub_cmd    = self.create_publisher(Twist,      f'/model/{self.ns}/cmd_vel',          10)
+        self.pub_obs    = self.create_publisher(String,     f'/survey/{self.ns}/observations',    10)
+        self.pub_done   = self.create_publisher(Bool,       f'/swarm/survey_done/{self.ns}',      10)
+        self.pub_state  = self.create_publisher(String,     f'/pollination/{self.ns}/state',      10)
+        self.pub_pollin = self.create_publisher(Int32,      f'/pollination/{self.ns}/pollinated', 10)
+        self.pub_atbase = self.create_publisher(Bool,       f'/pollination/{self.ns}/at_base',    10)
+        self.pub_pose_out = self.create_publisher(PoseStamped, f'/pollination/{self.ns}/pose',    10)
+        self.pub_batt   = self.create_publisher(Float32,    f'/battery/{self.ns}',                10)
+
+        # Subscribers
+        self.create_subscription(PoseStamped, f'/model/{self.ns}/pose',
+                                 self._on_pose, sensor_qos)
+        self.create_subscription(Bool,   '/swarm/survey_start',
+                                 self._on_survey_start, 10)
+        self.create_subscription(String, '/bloom/targets',
+                                 self._on_targets, latched_qos)
+        self.create_subscription(String, '/bloom/all_flowers',
+                                 self._on_all_flowers, latched_qos)
+        self.create_subscription(String, '/map_merger/routes',
+                                 self._on_routes, 10)
+        self.create_subscription(Int32,  '/bloom/current_day',
+                                 self._on_day, latched_qos)
+        self.create_subscription(Bool,   '/swarm/abort',
+                                 self._on_abort, 10)
+
+        self.create_timer(0.05, self._loop)
+        self.create_timer(0.5,  self._publish_status)
+
+        self.get_logger().info(
+            f"[D{self.did}] up [v12-clean]. "
+            f"base=({self.base_x:.2f},{self.base_y:.2f}) "
+            f"survey_z={self.survey_z} strip_p={self.strip_p}")
+
+    # ── Callbacks ─────────────────────────────────────────────────
+    def _on_pose(self, m: PoseStamped):
+        self.pose = (m.pose.position.x, m.pose.position.y, m.pose.position.z)
+        out = PoseStamped()
+        out.header.stamp = self.get_clock().now().to_msg()
+        out.header.frame_id = 'world'
+        out.pose = m.pose
+        self.pub_pose_out.publish(out)
+
+    def _on_day(self, m: Int32):
+        new_day = int(m.data)
+        if new_day == self.day:
+            return
+        self.day = new_day
+        self.observed_ids.clear()
+        self.route.clear()
+        self.route_i = 0
+        self.route_received_for_day = -1
+        if self.phase == DAY_DONE:
+            self.start_received = False
+            self.phase = IDLE
+            self._active_route = []
+            self._active_idx = 0
+            self._active_target = None
+
+    def _on_all_flowers(self, m: String):
+        try:
+            data = json.loads(m.data)
+            self.all_flowers = data.get('flowers', [])
+        except Exception:
+            pass
+
+    def _on_targets(self, m: String):
+        try:
+            data = json.loads(m.data)
+            self.targets = data.get('flowers', [])
+            self.get_logger().info(
+                f"[D{self.did}] received {len(self.targets)} open targets for day {self.day}")
+        except Exception:
+            pass
+
+    def _on_survey_start(self, m: Bool):
+        if not m.data or self.start_received:
+            return
+        BUSY = {TAKEOFF, SURVEY, RETURN_TO_BASE, LAND_SURVEY,
+                AWAIT_ROUTE, GOTO_FLOWER, DESCEND, BRUSH,
+                ASCEND_GENTLE, RETREAT, RTB, LAND_RTB,
+                RTB_BATTERY, RECHARGING}
+        if self.phase in BUSY:
+            return
+        self.start_received = True
+        self.observed_ids.clear()
+        self._plan_survey()
+        self._enter(TAKEOFF)
+        self.get_logger().info(
+            f"[D{self.did}] survey_start → TAKEOFF, "
+            f"{len(self.survey_wps)} waypoints, "
+            f"{len(self.targets)} targets available")
+
+    def _on_routes(self, m: String):
+        try:
+            data = json.loads(m.data)
+            day  = int(data.get('day', -1))
+            if day == self.route_received_for_day:
+                return
+            self.route = list(data.get('routes', {}).get(str(self.did), []))
+            self.route_received_for_day = day
+            self.get_logger().info(
+                f"[D{self.did}] day {day} route: {len(self.route)} flowers")
+            if self.phase == AWAIT_ROUTE:
+                self._activate_route()
+        except Exception as e:
+            self.get_logger().warning(f"[D{self.did}] bad routes: {e}")
+
+    def _activate_route(self):
+        self._active_route = list(self.route)
+        self._active_idx   = 0
+        self._mission_complete = False
+        if self._active_route:
+            self._active_target = self._active_route[0]
+            self._enter(GOTO_FLOWER)
+        else:
+            self._active_target = None
+            self._mission_complete = True
+            self._enter(RTB)
+
+    def _on_abort(self, m: Bool):
+        if m.data and self.phase in ACTIVE_PHASES \
+                and self.phase not in (RTB, LAND_RTB):
+            self._enter(RTB)
+
+    # ── Survey ────────────────────────────────────────────────────
+    def _plan_survey(self):
+        """Single horizontal lawnmower pass over whole field."""
+        self.survey_wps = []
+        z = self.survey_z
+        n = max(1, int(self.Lx / self.strip_p))
+        xs = [(i + 0.5) * (self.Lx / n) for i in range(n)]
+        for i, x in enumerate(xs):
+            if i % 2 == 0:
+                self.survey_wps.append((x, 0.5,         z))
+                self.survey_wps.append((x, self.Ly-0.5, z))
+            else:
+                self.survey_wps.append((x, self.Ly-0.5, z))
+                self.survey_wps.append((x, 0.5,         z))
+        self.survey_wp_i = 0
+
+    def _observe(self):
+        """Proximity scan against ALL flowers (open + closed).
+        Publishes every newly-seen flower so dashboard can show it.
+        Routing observations (sent to orchestrator) include all — the
+        orchestrator filters to open+unpollinated for routing."""
+        if self.pose is None:
+            return
+        px, py, _ = self.pose
+        # Scan all_flowers first (includes closed); fall back to targets only
+        scan_list = self.all_flowers if self.all_flowers else self.targets
+        if not scan_list:
+            return
+        new_obs = []
+        for f in scan_list:
+            fid = int(f['flower_id'])
+            if fid in self.observed_ids:
+                continue
+            if math.hypot(float(f['x'])-px, float(f['y'])-py) <= self.obs_r:
+                self.observed_ids.add(fid)
+                new_obs.append({
+                    'flower_id': fid,
+                    'x': float(f['x']), 'y': float(f['y']),
+                    'z': float(f.get('z', f.get('head_z', 1.7))),
+                    'state': f.get('state', 'unknown'),
+                    'observed_by': self.did,
+                    'observed_at': round(time.time(), 3),
+                })
+        if new_obs:
+            msg = String()
+            msg.data = json.dumps(
+                {'drone_id': self.did, 'observations': new_obs},
+                separators=(',', ':'))
+            self.pub_obs.publish(msg)
+
+    # ── Helpers ───────────────────────────────────────────────────
+    def _enter(self, phase):
+        if phase != self.phase:
+            self.get_logger().info(
+                f"[D{self.did}] {PHASE_NAMES[self.phase]} → {PHASE_NAMES[phase]}")
+        self.phase = phase
+        self.phase_t0 = time.time()
+
+    def _send(self, vx, vy, vz):
+        t = Twist()
+        t.linear.x = float(vx)
+        t.linear.y = float(vy)
+        t.linear.z = float(vz)
+        self.pub_cmd.publish(t)
+
+    def _goto(self, tx, ty, tz, lim: Lim):
+        if self.pose is None: return
+        vx = clamp(self.kp_xy*(tx-self.pose[0]), -lim.vmax_xy, lim.vmax_xy)
+        vy = clamp(self.kp_xy*(ty-self.pose[1]), -lim.vmax_xy, lim.vmax_xy)
+        vz = clamp(self.kp_z *(tz-self.pose[2]), -lim.vmax_z,  lim.vmax_z)
+        self._send(vx, vy, vz)
+
+    def _at_xy(self, tx, ty):
+        return self.pose is not None and dist2(self.pose, (tx,ty)) < self.pos_tol
+
+    def _at_z(self, tz):
+        return self.pose is not None and abs(self.pose[2]-tz) < self.z_tol
+
+    def _at_z_tight(self, tz, tol=0.05):
+        return self.pose is not None and abs(self.pose[2]-tz) < tol
+
+    def _battery_low(self):
+        return (self.batt_pct < self.batt_rtb_thresh
+                and self._active_idx < len(self._active_route))
+
+    # ── Main loop ─────────────────────────────────────────────────
+    def _loop(self):
+        now = time.time()
+        dt  = now - self.last_batt_tick
+        self.last_batt_tick = now
+        if self.phase in ACTIVE_PHASES:
+            self.batt_pct = max(0.0, self.batt_pct - self.drain_per_s*dt)
+
+        if self.pose is None:
+            return
+
+        # ── IDLE / DAY_DONE ──────────────────────────────────────
+        if self.phase in (IDLE, DAY_DONE):
+            self._send(0, 0, 0)
+            return
+
+        # ── TAKEOFF ──────────────────────────────────────────────
+        if self.phase == TAKEOFF:
+            self._goto(self.base_x, self.base_y, self.survey_z,
+                       self.limits[TAKEOFF])
+            if self._at_z(self.survey_z):
+                self._enter(SURVEY)
+            return
+
+        # ── SURVEY ───────────────────────────────────────────────
+        if self.phase == SURVEY:
+            if self.survey_wp_i >= len(self.survey_wps):
+                # Survey complete — publish all observed targets as single snapshot
+                self._publish_all_obs()
+                self._enter(RETURN_TO_BASE)
+                return
+            tx, ty, tz = self.survey_wps[self.survey_wp_i]
+            self._goto(tx, ty, tz, self.limits[SURVEY])
+            self._observe()
+            if self._at_xy(tx, ty) and self._at_z(tz):
+                self.survey_wp_i += 1
+            if (now - self.phase_t0) > 600.0:
+                self.get_logger().warning(f"[D{self.did}] survey timeout")
+                self._publish_all_obs()
+                self._enter(RETURN_TO_BASE)
+            return
+
+        # ── RETURN_TO_BASE (after survey) ────────────────────────
+        if self.phase == RETURN_TO_BASE:
+            self._goto(self.base_x, self.base_y, self.survey_z,
+                       self.limits[RETURN_TO_BASE])
+            if self._at_xy(self.base_x, self.base_y):
+                self._enter(LAND_SURVEY)
+            return
+
+        # ── LAND_SURVEY ──────────────────────────────────────────
+        if self.phase == LAND_SURVEY:
+            self._goto(self.base_x, self.base_y, self.base_z+0.30,
+                       self.limits[LAND_SURVEY])
+            if self._at_z(self.base_z+0.30):
+                self._send(0, 0, 0)
+                msg = Bool(); msg.data = True
+                for _ in range(3):
+                    self.pub_done.publish(msg)
+                self.get_logger().info(
+                    f"[D{self.did}] survey done — "
+                    f"{len(self.observed_ids)} flowers observed")
+                self._enter(AWAIT_ROUTE)
+            return
+
+        # ── AWAIT_ROUTE ──────────────────────────────────────────
+        if self.phase == AWAIT_ROUTE:
+            self._send(0, 0, 0)
+            if self.route_received_for_day == self.day:
+                self._activate_route()
+            return
+
+        # ── Battery interrupt ─────────────────────────────────────
+        if self.phase in (GOTO_FLOWER, RETREAT) and self._battery_low():
+            self.get_logger().warning(
+                f"[D{self.did}] battery low {self.batt_pct:.0f}% — RTB_BATTERY")
+            self._enter(RTB_BATTERY)
+            return
+
+        # ── GOTO_FLOWER ──────────────────────────────────────────
+        if self.phase == GOTO_FLOWER:
+            t = self._active_target
+            if t is None:
+                self._mission_complete = True
+                self._enter(RTB)
+                return
+            tx, ty = float(t['x']), float(t['y'])
+            self._goto(tx, ty, self.cruise_z, self.limits[GOTO_FLOWER])
+            if self._at_xy(tx, ty) and self._at_z(self.cruise_z):
+                head_z = float(t.get('z', t.get('head_z', 1.7)))
+                self.contact_z = head_z + self.pistil_L + self.tof_c
+                self._enter(DESCEND)
+            return
+
+        # ── DESCEND ───────────────────────────────────────────────
+        if self.phase == DESCEND:
+            t = self._active_target
+            if t is None: self._enter(RTB); return
+            tx, ty = float(t['x']), float(t['y'])
+            dz = self.contact_z + 0.15
+            self._goto(tx, ty, dz, self.limits[DESCEND])
+            if self._at_xy(tx, ty) and self._at_z(dz):
+                self._enter(BRUSH)
+            return
+
+        # ── BRUSH ─────────────────────────────────────────────────
+        if self.phase == BRUSH:
+            t = self._active_target
+            if t is None: self._enter(RTB); return
+            fx, fy = float(t['x']), float(t['y'])
+            elapsed = now - self.phase_t0
+            theta = 2*math.pi*2*(elapsed/max(self.brush_dur, 1e-3))
+            tx = fx + 0.05*math.cos(theta)
+            ty = fy + 0.05*math.sin(theta)
+            self._goto(tx, ty, self.contact_z, self.limits[BRUSH])
+            in_contact = self._at_z_tight(self.contact_z, 0.05)
+            if in_contact and not self._contact_t0_set:
+                self._contact_t0     = now
+                self._contact_t0_set = True
+            elapsed_contact = (now - self._contact_t0) if self._contact_t0_set else 0.0
+            if elapsed_contact >= self.brush_dur:
+                fid = int(t['flower_id'])
+                msg = Int32(); msg.data = fid
+                self.pub_pollin.publish(msg)
+                self.get_logger().info(
+                    f"[D{self.did}] ✿ pollinated flower {fid} "
+                    f"({self._active_idx+1}/{len(self._active_route)})")
+                self._active_idx += 1
+                self._contact_t0_set = False
+                self._enter(ASCEND_GENTLE)
+            elif (now - self.phase_t0) > (self.brush_dur + 12.0):
+                self.get_logger().warning(
+                    f"[D{self.did}] brush timeout on {int(t['flower_id'])} — skip")
+                self._active_idx += 1
+                self._contact_t0_set = False
+                self._enter(ASCEND_GENTLE)
+            return
+
+        # ── ASCEND_GENTLE ─────────────────────────────────────────
+        if self.phase == ASCEND_GENTLE:
+            t = self._active_target
+            tx = float(t['x']) if t else self.base_x
+            ty = float(t['y']) if t else self.base_y
+            gz = float(t.get('z', t.get('head_z', 1.7)) if t else 1.7) + 0.50
+            self._goto(tx, ty, gz, self.limits[ASCEND_GENTLE])
+            if self._at_z(gz):
+                self._enter(RETREAT)
+            return
+
+        # ── RETREAT ───────────────────────────────────────────────
+        if self.phase == RETREAT:
+            t = self._active_target
+            tx = float(t['x']) if t else self.base_x
+            ty = float(t['y']) if t else self.base_y
+            self._goto(tx, ty, self.cruise_z, self.limits[RETREAT])
+            if self._at_z(self.cruise_z):
+                remaining = len(self._active_route) - self._active_idx
+                if remaining <= 0:
+                    self._active_target = None
+                    self._mission_complete = True
+                    self._enter(RTB)
+                else:
+                    self._active_target = self._active_route[self._active_idx]
+                    self._enter(GOTO_FLOWER)
+            return
+
+        # ── RTB_BATTERY ───────────────────────────────────────────
+        if self.phase == RTB_BATTERY:
+            self._goto(self.base_x, self.base_y, self.cruise_z,
+                       self.limits[RTB_BATTERY])
+            if self._at_xy(self.base_x, self.base_y) and \
+               self._at_z(self.cruise_z):
+                self._enter(LAND_RTB)
+            return
+
+        # ── RTB ───────────────────────────────────────────────────
+        if self.phase == RTB:
+            self._goto(self.base_x, self.base_y, self.cruise_z,
+                       self.limits[RTB])
+            if self._at_xy(self.base_x, self.base_y):
+                self._enter(LAND_RTB)
+            return
+
+        # ── LAND_RTB ─────────────────────────────────────────────
+        if self.phase == LAND_RTB:
+            self._goto(self.base_x, self.base_y, self.base_z+0.30,
+                       self.limits[LAND_RTB])
+            if self._at_z(self.base_z+0.30):
+                self._send(0, 0, 0)
+                remaining = len(self._active_route) - self._active_idx
+                if remaining > 0 and not self._mission_complete:
+                    self._swap_start_t = time.time()
+                    self._enter(RECHARGING)
+                else:
+                    self.get_logger().info(
+                        f"[D{self.did}] day {self.day} done. "
+                        f"Pollinated {self._active_idx}/{len(self._active_route)}")
+                    self._enter(DAY_DONE)
+            return
+
+        # ── RECHARGING ────────────────────────────────────────────
+        if self.phase == RECHARGING:
+            self._send(0, 0, 0)
+            if (time.time() - self._swap_start_t) >= self.batt_swap_dur:
+                self.batt_pct = 100.0
+                if self._active_idx < len(self._active_route):
+                    self._active_target = self._active_route[self._active_idx]
+                    self._enter(GOTO_FLOWER)
+                else:
+                    self._mission_complete = True
+                    self._enter(DAY_DONE)
+            return
+
+    def _publish_all_obs(self):
+        """Publish all discovered flowers at survey end.
+        Uses all_flowers (open+closed) so orchestrator and dashboard
+        both know every flower the drone found."""
+        scan_list = self.all_flowers if self.all_flowers else self.targets
+        obs = [{'flower_id': int(f['flower_id']),
+                'x': float(f['x']), 'y': float(f['y']),
+                'z': float(f.get('z', f.get('head_z', 1.7))),
+                'state': f.get('state', 'unknown'),
+                'observed_by': self.did,
+                'observed_at': round(time.time(), 3)}
+               for f in scan_list
+               if int(f['flower_id']) in self.observed_ids]
+        msg = String()
+        msg.data = json.dumps(
+            {'drone_id': self.did, 'observations': obs},
+            separators=(',', ':'))
+        self.pub_obs.publish(msg)
+        self.get_logger().info(
+            f'[D{self.did}] published {len(obs)} obs '
+            f'({len([o for o in obs if o["state"] in ("prime","partial")])} open, '
+            f'{len([o for o in obs if o["state"] not in ("prime","partial","unknown")])} closed)')
+
+    # ── 2 Hz status ───────────────────────────────────────────────
+    def _publish_status(self):
+        s = String(); s.data = PHASE_NAMES[self.phase]
+        self.pub_state.publish(s)
+        b = Float32(); b.data = float(self.batt_pct)
+        self.pub_batt.publish(b)
+        m = Bool(); m.data = self.phase in (IDLE, DAY_DONE)
+        self.pub_atbase.publish(m)
+
+
+def main(args=None):
+    rclpy.init(args=args)
+    n = DroneController()
+    try:
+        rclpy.spin(n)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        n.destroy_node()
+        rclpy.shutdown()
+
+
+if __name__ == '__main__':
+    main()

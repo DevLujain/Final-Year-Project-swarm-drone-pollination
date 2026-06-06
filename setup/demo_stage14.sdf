@@ -1,0 +1,544 @@
+<?xml version="1.0" ?>
+<!--
+  demo_stage14.sdf  — Stage 14 visual-servoing demonstration world.
+
+  Architecture decision: this stage does NOT use PX4 SITL.  Drones are
+  kinematic Gazebo models with the velocity-control system plugin, driven
+  directly from the ROS 2 visual_servoing_controller node.  This makes the
+  visual demonstration reliable (no arming/preflight/GCS dependencies).
+
+  Scene layout (units: metres):
+    Origin (0,0)          — south-west corner of the field
+    Sector 1 (blue tile)  — x ∈ [0.5, 6.5]
+    Sector 2 (orange)     — x ∈ [6.5, 12.5]
+    Sunflower 1 head      — (4.0, 4.0, 1.5)
+    Sunflower 2 head      — (9.0, 4.0, 1.5)
+    Drone 0 base          — (1.5, 1.0, 0.1)
+    Drone 1 base          — (10.0, 1.0, 0.1)
+    Surveillance camera   — (6.5, -3.0, 4.0) looking N
+-->
+<sdf version="1.9">
+  <world name="demo_stage14">
+
+    <!-- ═══════════════════════════════════════════════════
+         PHYSICS + SYSTEM PLUGINS
+         ═══════════════════════════════════════════════════ -->
+    <physics name="1ms" type="ignored">
+      <max_step_size>0.004</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+      <real_time_update_rate>250</real_time_update_rate>
+    </physics>
+
+    <plugin filename="gz-sim-physics-system"
+            name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-sensors-system"
+            name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+    <plugin filename="gz-sim-scene-broadcaster-system"
+            name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="gz-sim-user-commands-system"
+            name="gz::sim::systems::UserCommands"/>
+    <plugin filename="gz-sim-contact-system"
+            name="gz::sim::systems::Contact"/>
+
+    <gravity>0 0 -9.8</gravity>
+    <atmosphere type="adiabatic"/>
+
+    <scene>
+      <grid>false</grid>
+      <ambient>0.95 0.95 0.95</ambient>
+      <background>0.65 0.78 0.95</background>
+      <sky/>
+    </scene>
+
+    <light name="sun" type="directional">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 12 0 0 0</pose>
+      <diffuse>1.0 0.97 0.9 1</diffuse>
+      <specular>0.3 0.3 0.3 1</specular>
+      <direction>-0.3 0.2 -0.9</direction>
+      <attenuation><range>1000</range><constant>0.9</constant>
+        <linear>0.005</linear><quadratic>0.001</quadratic></attenuation>
+    </light>
+
+    <!-- ═══════════════════════════════════════════════════
+         GROUND
+         ═══════════════════════════════════════════════════ -->
+    <model name="ground_plane">
+      <static>true</static>
+      <link name="link">
+        <collision name="c">
+          <geometry><plane><normal>0 0 1</normal>
+            <size>50 50</size></plane></geometry>
+        </collision>
+        <visual name="v">
+          <cast_shadows>false</cast_shadows>
+          <geometry><plane><normal>0 0 1</normal>
+            <size>50 50</size></plane></geometry>
+          <material>
+            <ambient>0.30 0.50 0.22 1</ambient>
+            <diffuse>0.30 0.50 0.22 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Sector 1 ground tile (blue) -->
+    <model name="sector1_tile">
+      <static>true</static>
+      <pose>3.5 4.0 0.005 0 0 0</pose>
+      <link name="l">
+        <visual name="v">
+          <geometry><box><size>6.0 8.0 0.01</size></box></geometry>
+          <material>
+            <ambient>0.12 0.30 0.85 0.55</ambient>
+            <diffuse>0.12 0.30 0.85 0.55</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Sector 2 ground tile (orange) -->
+    <model name="sector2_tile">
+      <static>true</static>
+      <pose>9.5 4.0 0.005 0 0 0</pose>
+      <link name="l">
+        <visual name="v">
+          <geometry><box><size>6.0 8.0 0.01</size></box></geometry>
+          <material>
+            <ambient>0.92 0.50 0.10 0.55</ambient>
+            <diffuse>0.92 0.50 0.10 0.55</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Sector boundary line (white) -->
+    <model name="sector_boundary">
+      <static>true</static>
+      <pose>6.5 4.0 0.015 0 0 0</pose>
+      <link name="l">
+        <visual name="v">
+          <geometry><box><size>0.08 8.0 0.02</size></box></geometry>
+          <material>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Base pads (where each drone starts and returns) -->
+    <model name="base_pad_0">
+      <static>true</static>
+      <pose>1.5 1.0 0.02 0 0 0</pose>
+      <link name="l">
+        <visual name="v">
+          <geometry><cylinder><radius>0.6</radius>
+            <length>0.04</length></cylinder></geometry>
+          <material>
+            <ambient>0.05 0.15 0.5 1</ambient>
+            <diffuse>0.05 0.15 0.5 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name="base_pad_1">
+      <static>true</static>
+      <pose>10.0 1.0 0.02 0 0 0</pose>
+      <link name="l">
+        <visual name="v">
+          <geometry><cylinder><radius>0.6</radius>
+            <length>0.04</length></cylinder></geometry>
+          <material>
+            <ambient>0.6 0.3 0.05 1</ambient>
+            <diffuse>0.6 0.3 0.05 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- ═══════════════════════════════════════════════════
+         SUNFLOWER MACRO
+         Replicated for sector 1 and sector 2.
+         Head is positioned at z=1.5m (matches drone flight height).
+         ═══════════════════════════════════════════════════ -->
+    <model name="sunflower_1">
+      <static>true</static>
+      <pose>4.0 4.0 0.0 0 0 0</pose>
+      <link name="stem">
+        <pose>0 0 0.75 0 0 0</pose>
+        <visual name="v">
+          <geometry><cylinder><radius>0.05</radius>
+            <length>1.5</length></cylinder></geometry>
+          <material><ambient>0.12 0.55 0.12 1</ambient>
+            <diffuse>0.12 0.55 0.12 1</diffuse></material>
+        </visual>
+      </link>
+      <link name="leaf_left">
+        <pose>-0.18 0 0.9 0 0.6 0</pose>
+        <visual name="v">
+          <geometry><ellipsoid><radii>0.22 0.10 0.02</radii></ellipsoid></geometry>
+          <material><ambient>0.15 0.6 0.18 1</ambient>
+            <diffuse>0.15 0.6 0.18 1</diffuse></material>
+        </visual>
+      </link>
+      <link name="leaf_right">
+        <pose>0.18 0 1.05 0 -0.6 0</pose>
+        <visual name="v">
+          <geometry><ellipsoid><radii>0.22 0.10 0.02</radii></ellipsoid></geometry>
+          <material><ambient>0.15 0.6 0.18 1</ambient>
+            <diffuse>0.15 0.6 0.18 1</diffuse></material>
+        </visual>
+      </link>
+      <link name="petals">
+        <pose>0 0 1.5 0 0 0</pose>
+        <visual name="v">
+          <geometry><cylinder><radius>0.40</radius>
+            <length>0.04</length></cylinder></geometry>
+          <material><ambient>0.98 0.85 0.06 1</ambient>
+            <diffuse>0.98 0.85 0.06 1</diffuse></material>
+        </visual>
+      </link>
+      <link name="head">
+        <pose>0 0 1.52 0 0 0</pose>
+        <visual name="v">
+          <geometry><cylinder><radius>0.22</radius>
+            <length>0.06</length></cylinder></geometry>
+          <material><ambient>0.45 0.27 0.05 1</ambient>
+            <diffuse>0.45 0.27 0.05 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="sunflower_2">
+      <static>true</static>
+      <pose>9.0 4.0 0.0 0 0 0</pose>
+      <link name="stem">
+        <pose>0 0 0.75 0 0 0</pose>
+        <visual name="v">
+          <geometry><cylinder><radius>0.05</radius>
+            <length>1.5</length></cylinder></geometry>
+          <material><ambient>0.12 0.55 0.12 1</ambient>
+            <diffuse>0.12 0.55 0.12 1</diffuse></material>
+        </visual>
+      </link>
+      <link name="leaf_left">
+        <pose>-0.18 0 0.9 0 0.6 0</pose>
+        <visual name="v">
+          <geometry><ellipsoid><radii>0.22 0.10 0.02</radii></ellipsoid></geometry>
+          <material><ambient>0.15 0.6 0.18 1</ambient>
+            <diffuse>0.15 0.6 0.18 1</diffuse></material>
+        </visual>
+      </link>
+      <link name="leaf_right">
+        <pose>0.18 0 1.05 0 -0.6 0</pose>
+        <visual name="v">
+          <geometry><ellipsoid><radii>0.22 0.10 0.02</radii></ellipsoid></geometry>
+          <material><ambient>0.15 0.6 0.18 1</ambient>
+            <diffuse>0.15 0.6 0.18 1</diffuse></material>
+        </visual>
+      </link>
+      <link name="petals">
+        <pose>0 0 1.5 0 0 0</pose>
+        <visual name="v">
+          <geometry><cylinder><radius>0.40</radius>
+            <length>0.04</length></cylinder></geometry>
+          <material><ambient>0.98 0.85 0.06 1</ambient>
+            <diffuse>0.98 0.85 0.06 1</diffuse></material>
+        </visual>
+      </link>
+      <link name="head">
+        <pose>0 0 1.52 0 0 0</pose>
+        <visual name="v">
+          <geometry><cylinder><radius>0.22</radius>
+            <length>0.06</length></cylinder></geometry>
+          <material><ambient>0.45 0.27 0.05 1</ambient>
+            <diffuse>0.45 0.27 0.05 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- ═══════════════════════════════════════════════════
+         DRONE 0 — Sector 1 (will fly to sunflower_1)
+         Kinematic body (gravity disabled) + velocity-control plugin.
+         ROS 2 topic /model/drone_0/cmd_vel commands velocity.
+         ═══════════════════════════════════════════════════ -->
+    <model name="drone_0">
+      <pose>1.5 1.0 0.10 0 0 0</pose>
+      <self_collide>false</self_collide>
+
+      <link name="base_link">
+        <gravity>false</gravity>
+
+        <inertial>
+          <mass>1.5</mass>
+          <inertia>
+            <ixx>0.03</ixx><iyy>0.03</iyy><izz>0.06</izz>
+            <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz>
+          </inertia>
+        </inertial>
+
+        <!-- Central body -->
+        <visual name="body">
+          <geometry><box><size>0.30 0.30 0.08</size></box></geometry>
+          <material>
+            <ambient>0.05 0.20 0.65 1</ambient>
+            <diffuse>0.05 0.20 0.65 1</diffuse>
+          </material>
+        </visual>
+        <collision name="body_c">
+          <geometry><box><size>0.30 0.30 0.08</size></box></geometry>
+        </collision>
+
+        <!-- Four arms -->
+        <visual name="arm_fl">
+          <pose>0.22 0.22 0 0 0 0.7854</pose>
+          <geometry><box><size>0.42 0.025 0.025</size></box></geometry>
+          <material><ambient>0.1 0.1 0.1 1</ambient>
+            <diffuse>0.1 0.1 0.1 1</diffuse></material>
+        </visual>
+        <visual name="arm_fr">
+          <pose>0.22 -0.22 0 0 0 -0.7854</pose>
+          <geometry><box><size>0.42 0.025 0.025</size></box></geometry>
+          <material><ambient>0.1 0.1 0.1 1</ambient>
+            <diffuse>0.1 0.1 0.1 1</diffuse></material>
+        </visual>
+        <visual name="arm_bl">
+          <pose>-0.22 0.22 0 0 0 -0.7854</pose>
+          <geometry><box><size>0.42 0.025 0.025</size></box></geometry>
+          <material><ambient>0.1 0.1 0.1 1</ambient>
+            <diffuse>0.1 0.1 0.1 1</diffuse></material>
+        </visual>
+        <visual name="arm_br">
+          <pose>-0.22 -0.22 0 0 0 0.7854</pose>
+          <geometry><box><size>0.42 0.025 0.025</size></box></geometry>
+          <material><ambient>0.1 0.1 0.1 1</ambient>
+            <diffuse>0.1 0.1 0.1 1</diffuse></material>
+        </visual>
+
+        <!-- Four propellers (visual disks at arm tips) -->
+        <visual name="prop_fl">
+          <pose>0.30 0.30 0.04 0 0 0</pose>
+          <geometry><cylinder><radius>0.12</radius>
+            <length>0.01</length></cylinder></geometry>
+          <material><ambient>0.85 0.1 0.1 0.6</ambient>
+            <diffuse>0.85 0.1 0.1 0.6</diffuse></material>
+        </visual>
+        <visual name="prop_fr">
+          <pose>0.30 -0.30 0.04 0 0 0</pose>
+          <geometry><cylinder><radius>0.12</radius>
+            <length>0.01</length></cylinder></geometry>
+          <material><ambient>0.85 0.1 0.1 0.6</ambient>
+            <diffuse>0.85 0.1 0.1 0.6</diffuse></material>
+        </visual>
+        <visual name="prop_bl">
+          <pose>-0.30 0.30 0.04 0 0 0</pose>
+          <geometry><cylinder><radius>0.12</radius>
+            <length>0.01</length></cylinder></geometry>
+          <material><ambient>0.85 0.1 0.1 0.6</ambient>
+            <diffuse>0.85 0.1 0.1 0.6</diffuse></material>
+        </visual>
+        <visual name="prop_br">
+          <pose>-0.30 -0.30 0.04 0 0 0</pose>
+          <geometry><cylinder><radius>0.12</radius>
+            <length>0.01</length></cylinder></geometry>
+          <material><ambient>0.85 0.1 0.1 0.6</ambient>
+            <diffuse>0.85 0.1 0.1 0.6</diffuse></material>
+        </visual>
+
+        <!-- Forward-facing marker (so orientation is visible) -->
+        <visual name="forward_marker">
+          <pose>0.15 0 0.045 0 0 0</pose>
+          <geometry><box><size>0.06 0.04 0.01</size></box></geometry>
+          <material><ambient>1.0 1.0 0.05 1</ambient>
+            <diffuse>1.0 1.0 0.05 1</diffuse></material>
+        </visual>
+
+        <!-- Pollination rod (small cylinder extending forward) -->
+        <visual name="poll_rod">
+          <pose>0.18 0 -0.04 0 1.5708 0</pose>
+          <geometry><cylinder><radius>0.008</radius>
+            <length>0.10</length></cylinder></geometry>
+          <material><ambient>0.95 0.95 0.95 1</ambient>
+            <diffuse>0.95 0.95 0.95 1</diffuse></material>
+        </visual>
+      </link>
+
+      <!-- Velocity control plugin — accepts gz.msgs.Twist on
+           /model/drone_0/cmd_vel and applies it directly. -->
+      <plugin
+        filename="gz-sim-velocity-control-system"
+        name="gz::sim::systems::VelocityControl">
+      </plugin>
+
+      <!-- Publish model pose to /model/drone_0/pose at 50 Hz -->
+      <plugin
+        filename="gz-sim-pose-publisher-system"
+        name="gz::sim::systems::PosePublisher">
+        <publish_link_pose>false</publish_link_pose>
+        <publish_visual_pose>false</publish_visual_pose>
+        <publish_collision_pose>false</publish_collision_pose>
+        <publish_model_pose>true</publish_model_pose>
+        <publish_nested_model_pose>false</publish_nested_model_pose>
+        <use_pose_vector_msg>false</use_pose_vector_msg>
+        <static_publisher>false</static_publisher>
+        <update_frequency>50</update_frequency>
+      </plugin>
+    </model>
+
+    <!-- ═══════════════════════════════════════════════════
+         DRONE 1 — Sector 2
+         ═══════════════════════════════════════════════════ -->
+    <model name="drone_1">
+      <pose>10.0 1.0 0.10 0 0 0</pose>
+      <self_collide>false</self_collide>
+
+      <link name="base_link">
+        <gravity>false</gravity>
+
+        <inertial>
+          <mass>1.5</mass>
+          <inertia>
+            <ixx>0.03</ixx><iyy>0.03</iyy><izz>0.06</izz>
+            <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz>
+          </inertia>
+        </inertial>
+
+        <visual name="body">
+          <geometry><box><size>0.30 0.30 0.08</size></box></geometry>
+          <material>
+            <ambient>0.70 0.30 0.05 1</ambient>
+            <diffuse>0.70 0.30 0.05 1</diffuse>
+          </material>
+        </visual>
+        <collision name="body_c">
+          <geometry><box><size>0.30 0.30 0.08</size></box></geometry>
+        </collision>
+
+        <visual name="arm_fl">
+          <pose>0.22 0.22 0 0 0 0.7854</pose>
+          <geometry><box><size>0.42 0.025 0.025</size></box></geometry>
+          <material><ambient>0.1 0.1 0.1 1</ambient>
+            <diffuse>0.1 0.1 0.1 1</diffuse></material>
+        </visual>
+        <visual name="arm_fr">
+          <pose>0.22 -0.22 0 0 0 -0.7854</pose>
+          <geometry><box><size>0.42 0.025 0.025</size></box></geometry>
+          <material><ambient>0.1 0.1 0.1 1</ambient>
+            <diffuse>0.1 0.1 0.1 1</diffuse></material>
+        </visual>
+        <visual name="arm_bl">
+          <pose>-0.22 0.22 0 0 0 -0.7854</pose>
+          <geometry><box><size>0.42 0.025 0.025</size></box></geometry>
+          <material><ambient>0.1 0.1 0.1 1</ambient>
+            <diffuse>0.1 0.1 0.1 1</diffuse></material>
+        </visual>
+        <visual name="arm_br">
+          <pose>-0.22 -0.22 0 0 0 0.7854</pose>
+          <geometry><box><size>0.42 0.025 0.025</size></box></geometry>
+          <material><ambient>0.1 0.1 0.1 1</ambient>
+            <diffuse>0.1 0.1 0.1 1</diffuse></material>
+        </visual>
+
+        <visual name="prop_fl">
+          <pose>0.30 0.30 0.04 0 0 0</pose>
+          <geometry><cylinder><radius>0.12</radius>
+            <length>0.01</length></cylinder></geometry>
+          <material><ambient>0.85 0.1 0.1 0.6</ambient>
+            <diffuse>0.85 0.1 0.1 0.6</diffuse></material>
+        </visual>
+        <visual name="prop_fr">
+          <pose>0.30 -0.30 0.04 0 0 0</pose>
+          <geometry><cylinder><radius>0.12</radius>
+            <length>0.01</length></cylinder></geometry>
+          <material><ambient>0.85 0.1 0.1 0.6</ambient>
+            <diffuse>0.85 0.1 0.1 0.6</diffuse></material>
+        </visual>
+        <visual name="prop_bl">
+          <pose>-0.30 0.30 0.04 0 0 0</pose>
+          <geometry><cylinder><radius>0.12</radius>
+            <length>0.01</length></cylinder></geometry>
+          <material><ambient>0.85 0.1 0.1 0.6</ambient>
+            <diffuse>0.85 0.1 0.1 0.6</diffuse></material>
+        </visual>
+        <visual name="prop_br">
+          <pose>-0.30 -0.30 0.04 0 0 0</pose>
+          <geometry><cylinder><radius>0.12</radius>
+            <length>0.01</length></cylinder></geometry>
+          <material><ambient>0.85 0.1 0.1 0.6</ambient>
+            <diffuse>0.85 0.1 0.1 0.6</diffuse></material>
+        </visual>
+
+        <visual name="forward_marker">
+          <pose>0.15 0 0.045 0 0 0</pose>
+          <geometry><box><size>0.06 0.04 0.01</size></box></geometry>
+          <material><ambient>1.0 1.0 0.05 1</ambient>
+            <diffuse>1.0 1.0 0.05 1</diffuse></material>
+        </visual>
+
+        <visual name="poll_rod">
+          <pose>0.18 0 -0.04 0 1.5708 0</pose>
+          <geometry><cylinder><radius>0.008</radius>
+            <length>0.10</length></cylinder></geometry>
+          <material><ambient>0.95 0.95 0.95 1</ambient>
+            <diffuse>0.95 0.95 0.95 1</diffuse></material>
+        </visual>
+      </link>
+
+      <plugin
+        filename="gz-sim-velocity-control-system"
+        name="gz::sim::systems::VelocityControl">
+      </plugin>
+
+      <plugin
+        filename="gz-sim-pose-publisher-system"
+        name="gz::sim::systems::PosePublisher">
+        <publish_link_pose>false</publish_link_pose>
+        <publish_model_pose>true</publish_model_pose>
+        <update_frequency>50</update_frequency>
+      </plugin>
+    </model>
+
+    <!-- ═══════════════════════════════════════════════════
+         SURVEILLANCE CAMERA
+         Static pole + camera. Streams to /surveillance/image
+         (bridged to ROS 2 in launch_stage14.sh). YOLO runs on
+         this feed and the drone-mounted view is simulated by
+         cropping around each drone's current position.
+         ═══════════════════════════════════════════════════ -->
+    <model name="surveillance_cam">
+      <static>true</static>
+      <pose>6.5 -2.0 4.0 0 0.50 1.5708</pose>
+      <link name="link">
+        <visual name="pole">
+          <pose>0 0 -2.0 0 0 0</pose>
+          <geometry><cylinder><radius>0.04</radius>
+            <length>4.0</length></cylinder></geometry>
+          <material><ambient>0.2 0.2 0.2 1</ambient>
+            <diffuse>0.2 0.2 0.2 1</diffuse></material>
+        </visual>
+        <visual name="box">
+          <geometry><box><size>0.18 0.10 0.10</size></box></geometry>
+          <material><ambient>0.05 0.05 0.05 1</ambient>
+            <diffuse>0.05 0.05 0.05 1</diffuse></material>
+        </visual>
+        <sensor name="cam" type="camera">
+          <pose>0.10 0 0 0 0 0</pose>
+          <topic>/surveillance/image</topic>
+          <update_rate>15</update_rate>
+          <camera>
+            <horizontal_fov>1.50</horizontal_fov>
+            <image><width>640</width><height>480</height>
+              <format>R8G8B8</format></image>
+            <clip><near>0.1</near><far>50</far></clip>
+          </camera>
+          <always_on>1</always_on>
+          <visualize>false</visualize>
+        </sensor>
+      </link>
+    </model>
+
+  </world>
+</sdf>

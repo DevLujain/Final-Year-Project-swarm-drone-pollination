@@ -1,0 +1,6 @@
+Stage 16 (no-cheat) — run stage16_20260606_173605
+  ended day:    8
+  n_drones:     2
+  landmarks:    96 discovered
+  pollinated:   93
+  duration:     2167.5 s

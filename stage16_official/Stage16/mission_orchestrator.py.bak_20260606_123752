@@ -1,0 +1,408 @@
+#!/usr/bin/env python3
+"""
+mission_orchestrator.py — Stage 16 v12
+=======================================
+Reads flower registry. Every day:
+  1. Computes ALL flower bloom states from registry
+  2. Publishes /bloom/all_flowers  (ALL 60 flowers + state) → dashboard field map
+  3. Publishes /bloom/targets      (only open+unpollinated) → drone controller
+  4. Fires survey_start → drones do one lawnmower pass, observe open flowers
+  5. Routes only open unpollinated flowers → drones pollinate → land → DAY_DONE
+  6. Day advances. Already-pollinated flowers NEVER re-routed (tracked by fid).
+
+Day 1 may have 0 targets (bloom_start_mean=4) — drones survey, find nothing,
+land immediately, day advances. Action starts from day 4+.
+"""
+from __future__ import annotations
+
+import csv, json, math, os, time
+from collections import defaultdict
+from pathlib import Path
+from typing import List, Dict
+
+import rclpy
+from rclpy.node import Node
+from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy, HistoryPolicy
+from geometry_msgs.msg import PoseStamped
+from std_msgs.msg import Bool, Int32, Float32, String
+
+
+def _expand(p): return os.path.expanduser(os.path.expandvars(p))
+
+INIT, DAY_PUBLISH, SURVEY_RUNNING, MERGING, POLLINATING, DAY_SETTLE, MISSION_COMPLETE = range(7)
+
+
+class MissionOrchestrator(Node):
+
+    def __init__(self):
+        super().__init__('mission_orchestrator')
+
+        self.declare_parameter('n_drones',           2)
+        self.declare_parameter('mode',               'full_cycle')
+        self.declare_parameter('current_day',        1)
+        self.declare_parameter('bloom_window_days',  8)
+        self.declare_parameter('prime_window',       [2, 4])
+        self.declare_parameter('partial_window',     [5, 7])
+        self.declare_parameter('dedup_radius_m',     0.45)
+        self.declare_parameter('init_dwell_s',       3.0)
+        self.declare_parameter('merge_dwell_s',      2.0)
+        self.declare_parameter('day_settle_s',       3.0)
+        self.declare_parameter('pollinate_grace_s',  5.0)
+        self.declare_parameter('flowers_json',       '/tmp/stage16_flowers.json')
+        self.declare_parameter('log_directory',
+            '~/Desktop/Drone_Testing_Infrastructure/mission_outputs/stage16')
+        self.declare_parameter('run_id_prefix',      'stage16')
+
+        self.n_drones        = int(self.get_parameter('n_drones').value)
+        self.mode            = str(self.get_parameter('mode').value)
+        self.day             = int(self.get_parameter('current_day').value)
+        self.day_max         = int(self.get_parameter('bloom_window_days').value)
+        self.prime_win       = list(self.get_parameter('prime_window').value)
+        self.partial_win     = list(self.get_parameter('partial_window').value)
+        self.dedup_r         = float(self.get_parameter('dedup_radius_m').value)
+        self.init_dwell      = float(self.get_parameter('init_dwell_s').value)
+        self.merge_dwell     = float(self.get_parameter('merge_dwell_s').value)
+        self.day_settle      = float(self.get_parameter('day_settle_s').value)
+        self.pollinate_grace = float(self.get_parameter('pollinate_grace_s').value)
+        self.flowers_json    = str(self.get_parameter('flowers_json').value)
+        log_dir = _expand(str(self.get_parameter('log_directory').value))
+        self.run_id = f"{self.get_parameter('run_id_prefix').value}_{time.strftime('%Y%m%d_%H%M%S')}"
+
+        self.flowers: List[dict] = []
+        self.bases:   List[dict] = []
+        self._load_registry()
+
+        self.state            = INIT
+        self.t0               = time.time()
+        self.phase_t0         = time.time()
+        self.survey_done      = {i: False for i in range(self.n_drones)}
+        self.at_base          = {i: False for i in range(self.n_drones)}
+        self.observations:    Dict[int, list] = defaultdict(list)
+        self.pollinated_today = 0
+        self.pollinated_total = 0
+        self.pollinated_fids: set = set()   # cross-day: never re-route
+        self.poses   = {i: (0.0, 0.0, 0.0) for i in range(self.n_drones)}
+        self.states  = {i: 'IDLE' for i in range(self.n_drones)}
+        self.battery = {i: 100.0  for i in range(self.n_drones)}
+        self.routes_published_for_day = -1
+
+        Path(log_dir).mkdir(parents=True, exist_ok=True)
+        self.events_path  = Path(log_dir) / f"events_{self.run_id}.csv"
+        self.pollin_path  = Path(log_dir) / f"pollination_{self.run_id}.csv"
+        self.telem_path   = Path(log_dir) / f"telemetry_{self.run_id}.csv"
+        self.summary_path = Path(log_dir) / f"mission_{self.run_id}.txt"
+
+        self.events_f = open(self.events_path, 'w', newline='')
+        self.events_w = csv.writer(self.events_f)
+        self.events_w.writerow(['ts','day','drone_id','type','payload_json'])
+
+        self.pollin_f = open(self.pollin_path, 'w', newline='')
+        self.pollin_w = csv.writer(self.pollin_f)
+        self.pollin_w.writerow(['run_id','day','drone_id','flower_id','x','y','pollinated_at'])
+
+        self.telem_f = open(self.telem_path, 'w', newline='')
+        self.telem_w = csv.writer(self.telem_f)
+        header = ['ts','day']
+        for i in range(self.n_drones):
+            header += [f'D{i}_state',f'D{i}_x',f'D{i}_y',f'D{i}_z',f'D{i}_batt']
+        self.telem_w.writerow(header)
+
+        latched = QoSProfile(depth=1, reliability=ReliabilityPolicy.RELIABLE,
+                             durability=DurabilityPolicy.TRANSIENT_LOCAL,
+                             history=HistoryPolicy.KEEP_LAST)
+
+        self.pub_day     = self.create_publisher(Int32,  '/bloom/current_day',  latched)
+        self.pub_all     = self.create_publisher(String, '/bloom/all_flowers',   latched)
+        self.pub_targets = self.create_publisher(String, '/bloom/targets',       latched)
+        self.pub_start   = self.create_publisher(Bool,   '/swarm/survey_start',  latched)
+        self.pub_routes  = self.create_publisher(String, '/map_merger/routes',   10)
+        self.pub_event   = self.create_publisher(String, '/swarm/event',         10)
+        self.pub_abort   = self.create_publisher(Bool,   '/swarm/abort',         10)
+
+        for i in range(self.n_drones):
+            self.create_subscription(String, f'/survey/drone_{i}/observations',
+                                     lambda m,d=i: self._on_obs(d,m), 10)
+            self.create_subscription(Bool, f'/swarm/survey_done/drone_{i}',
+                                     lambda m,d=i: self._on_survey_done(d,m), 10)
+            self.create_subscription(Bool, f'/pollination/drone_{i}/at_base',
+                                     lambda m,d=i: self._on_at_base(d,m), 10)
+            self.create_subscription(Int32, f'/pollination/drone_{i}/pollinated',
+                                     lambda m,d=i: self._on_pollin(d,m), 10)
+            self.create_subscription(String, f'/pollination/drone_{i}/state',
+                                     lambda m,d=i: self._on_state(d,m), 10)
+            self.create_subscription(PoseStamped, f'/pollination/drone_{i}/pose',
+                                     lambda m,d=i: self._on_pose(d,m), 10)
+            self.create_subscription(Float32, f'/battery/drone_{i}',
+                                     lambda m,d=i: self._on_batt(d,m), 10)
+
+        self.create_timer(0.5, self._tick)
+        self.create_timer(0.5, self._telemetry)
+
+        self.get_logger().info(
+            f"orchestrator v12 up. n_drones={self.n_drones} "
+            f"start_day={self.day} day_max={self.day_max} "
+            f"flowers={len(self.flowers)}")
+        self._event('mission_start', None, {
+            'n_drones': self.n_drones, 'start_day': self.day,
+            'day_max': self.day_max, 'n_flowers': len(self.flowers)})
+
+    def _load_registry(self):
+        try:
+            with open(_expand(self.flowers_json)) as f:
+                data = json.load(f)
+            self.flowers = list(data.get('flowers', []))
+            self.bases   = list(data.get('drone_bases', []))
+            if self.bases:
+                self.n_drones = len(self.bases)
+        except Exception as e:
+            self.get_logger().error(f"registry load failed: {e}")
+
+    def _state_for(self, dsi: int) -> str:
+        """Simplified: any flower that has started blooming (dsi>=0)
+        within its 8-day window is 'open' and a pollination target."""
+        if dsi < 0:  return 'not_ready'
+        if dsi > 7:  return 'spent'
+        return 'open'
+
+    def _publish_day(self):
+        dm = Int32(); dm.data = self.day
+        self.pub_day.publish(dm)
+
+        counts = {'not_ready':0,'opening':0,'prime':0,'partial':0,'spent':0}
+        targets = []
+        for f in self.flowers:
+            fid = int(f['flower_id'])
+            st  = self._state_for(self.day - int(f['bloom_start']))
+            counts[st] += 1
+            is_open = st == 'open'
+            entry = {'flower_id': fid, 'x': float(f['x']), 'y': float(f['y']),
+                     'z': float(f.get('head_z',1.7)), 'state': st,
+                     'pollinated': fid in self.pollinated_fids}
+            if st == 'open' and fid not in self.pollinated_fids:
+                targets.append(entry)
+
+        # Publish ALL flowers (open+closed) for drone controller to memorize
+        all_flowers = [{'flower_id':int(f['flower_id']),'x':float(f['x']),
+                         'y':float(f['y']),'z':float(f.get('head_z',1.7)),
+                         'state':self._state_for(self.day-int(f['bloom_start'])),
+                         'pollinated':int(f['flower_id']) in self.pollinated_fids}
+                        for f in self.flowers]
+        am = String()
+        am.data = json.dumps({'day':self.day,'flowers':all_flowers}, separators=(',',':'))
+        self.pub_all.publish(am)
+
+        tm = String()
+        tm.data = json.dumps({'day':self.day,'flowers':targets}, separators=(',',':'))
+        self.pub_targets.publish(tm)
+
+        self.get_logger().info(
+            f"day {self.day}: not_ready={counts['not_ready']} "
+            f"opening={counts['opening']} prime={counts['prime']} "
+            f"partial={counts['partial']} spent={counts['spent']} "
+            f"→ {len(targets)} open targets "
+            f"({len(self.pollinated_fids)} already pollinated)")
+
+        self._event('day_start', None, {'day':self.day,'counts':counts,
+                                        'n_targets':len(targets),
+                                        'already_pollinated':len(self.pollinated_fids)})
+        return len(targets)
+
+    def _on_obs(self, did, m):
+        try:
+            data = json.loads(m.data)
+            self.observations[did] = list(data.get('observations',[]))
+        except Exception: pass
+
+    def _on_survey_done(self, did, m):
+        if m.data and not self.survey_done.get(did, False):
+            self.survey_done[did] = True
+            self._event('survey_done', did,
+                        {'n_observed': len(self.observations.get(did,[]))})
+
+    def _on_at_base(self, did, m):
+        was = self.at_base.get(did, False)
+        self.at_base[did] = bool(m.data)
+        if m.data and not was:
+            self._event('drone_at_base', did, {})
+
+    def _on_pollin(self, did, m):
+        fid = int(m.data)
+        self.pollinated_fids.add(fid)
+        self.pollinated_today += 1
+        self.pollinated_total += 1
+        x = y = None
+        for f in self.flowers:
+            if int(f['flower_id']) == fid:
+                x, y = float(f['x']), float(f['y']); break
+        ts = time.time()
+        self._event('pollination_success', did,
+                    {'flower_id':fid,'x':x,'y':y,
+                     'cumulative_total':self.pollinated_total})
+        self.pollin_w.writerow([self.run_id, self.day, did, fid, x, y,
+                                time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(ts))])
+        self.pollin_f.flush()
+
+    def _on_state(self, did, m):  self.states[did] = str(m.data)
+    def _on_pose(self, did, m):
+        self.poses[did] = (m.pose.position.x, m.pose.position.y, m.pose.position.z)
+    def _on_batt(self, did, m):   self.battery[did] = float(m.data)
+
+    def _compute_routes(self) -> dict:
+        all_obs = []
+        for lst in self.observations.values(): all_obs.extend(lst)
+
+        merged: List[dict] = []
+        for o in all_obs:
+            ox, oy = float(o['x']), float(o['y'])
+            if any(math.hypot(ox-m['x'], oy-m['y']) < self.dedup_r for m in merged):
+                continue
+            merged.append({'flower_id':int(o['flower_id']),
+                           'x':ox,'y':oy,'z':float(o.get('z',o.get('head_z',1.7)))})
+
+        merged = [m for m in merged if m['flower_id'] not in self.pollinated_fids]
+        self.get_logger().info(
+            f"route: {len(all_obs)} obs → {len(merged)} unique unpollinated")
+
+        if not merged:
+            return {str(i):[] for i in range(self.n_drones)}
+
+        merged.sort(key=lambda f:(f['x'],f['y']))
+        partitions = [[] for _ in range(self.n_drones)]
+        base_xs = [b['base_x'] for b in self.bases] if self.bases else [0.0]*self.n_drones
+        base_ys = [b['base_y'] for b in self.bases] if self.bases else [-1.0]*self.n_drones
+
+        for f in merged:
+            min_c = min(len(p) for p in partitions)
+            cands = [d for d in range(self.n_drones) if len(partitions[d])==min_c]
+            best  = min(cands, key=lambda d: abs(f['x']-base_xs[d]))
+            partitions[best].append(f)
+
+        routes = {}
+        for did in range(self.n_drones):
+            base = (base_xs[did], base_ys[did])
+            rem, cur, path = list(partitions[did]), base, []
+            while rem:
+                nxt = min(rem, key=lambda f: math.hypot(f['x']-cur[0],f['y']-cur[1]))
+                path.append(nxt); cur=(nxt['x'],nxt['y']); rem.remove(nxt)
+            routes[str(did)] = [{'flower_id':int(f['flower_id']),
+                                  'x':float(f['x']),'y':float(f['y']),
+                                  'z':float(f['z'])} for f in path]
+        return routes
+
+    def _tick(self):
+        now = time.time()
+
+        if self.state == INIT:
+            if (now - self.phase_t0) >= self.init_dwell:
+                self._enter(DAY_PUBLISH)
+
+        elif self.state == DAY_PUBLISH:
+            n_targets = self._publish_day()
+            self.survey_done = {i: False for i in range(self.n_drones)}
+            self.observations = defaultdict(list)
+            self.pollinated_today = 0
+            self.routes_published_for_day = -1
+            sm = Bool(); sm.data = True
+            for _ in range(3): self.pub_start.publish(sm)
+            self._event('survey_start', None, {'day':self.day,'n_targets':n_targets})
+            self._enter(SURVEY_RUNNING)
+
+        elif self.state == SURVEY_RUNNING:
+            # Re-publish survey_start every 2s for drones that started late
+            if not hasattr(self, '_last_start_pub'):
+                self._last_start_pub = 0.0
+            if (now - self._last_start_pub) >= 2.0:
+                sm = Bool(); sm.data = True
+                self.pub_start.publish(sm)
+                self._last_start_pub = now
+            if all(self.survey_done.values()):
+                self._enter(MERGING)
+
+        elif self.state == MERGING:
+            if (now - self.phase_t0) < self.merge_dwell: return
+            routes = self._compute_routes()
+            payload = {'day':self.day,'routes':routes}
+            rm = String(); rm.data = json.dumps(payload, separators=(',',':'))
+            for _ in range(3): self.pub_routes.publish(rm)
+            self.routes_published_for_day = self.day
+            counts = {k:len(v) for k,v in routes.items()}
+            self._event('routes_assigned', None, {'route_counts':counts,'day':self.day})
+            self.get_logger().info(f"routes: {counts}")
+            self._enter(POLLINATING)
+
+        elif self.state == POLLINATING:
+            if (now - self.phase_t0) < self.pollinate_grace: return
+            if all(self.states.get(i)=='DAY_DONE' for i in range(self.n_drones)):
+                self._event('day_complete', None,
+                            {'day':self.day,'pollinated_today':self.pollinated_today})
+                self.get_logger().info(
+                    f"── day {self.day} done — "
+                    f"{self.pollinated_today} today, {self.pollinated_total} total ──")
+                self._enter(DAY_SETTLE)
+
+        elif self.state == DAY_SETTLE:
+            if (now - self.phase_t0) < self.day_settle: return
+            if self.mode == 'single_day' or self.day+1 > self.day_max:
+                self._enter(MISSION_COMPLETE); return
+            self.day += 1
+            self._enter(DAY_PUBLISH)
+
+        elif self.state == MISSION_COMPLETE:
+            if not getattr(self,'_done',False):
+                self._done = True
+                self._event('mission_complete', None,
+                            {'total_pollinated':self.pollinated_total,
+                             'duration_s':round(time.time()-self.t0,1)})
+                self.get_logger().info(f"★ MISSION COMPLETE — {self.pollinated_total} pollinated")
+                self._write_summary()
+
+    def _enter(self, state):
+        self.state = state; self.phase_t0 = time.time()
+
+    def _event(self, etype, drone_id, payload):
+        env = {'schema':'1','type':etype,'ts':round(time.time(),3),
+               'day':self.day,'drone_id':drone_id,'payload':payload or {}}
+        msg = String(); msg.data = json.dumps(env, separators=(',',':'))
+        self.pub_event.publish(msg)
+        self.events_w.writerow([env['ts'],env['day'],
+                                 env['drone_id'] if drone_id is not None else '',
+                                 etype, json.dumps(payload or {},separators=(',',':'))])
+        self.events_f.flush()
+
+    def _telemetry(self):
+        row = [round(time.time(),3), self.day]
+        for i in range(self.n_drones):
+            x,y,z = self.poses.get(i,(0,0,0))
+            row += [self.states.get(i,'?'), round(x,3),round(y,3),round(z,3),
+                    round(self.battery.get(i,0.0),1)]
+        self.telem_w.writerow(row)
+        if not hasattr(self,'_tn'): self._tn=0
+        self._tn+=1
+        if self._tn%10==0: self.telem_f.flush()
+
+    def _write_summary(self):
+        try:
+            with open(self.summary_path,'w') as f:
+                f.write(f"Stage 16 — run {self.run_id}\n")
+                f.write(f"  ended day:   {self.day}\n")
+                f.write(f"  n_drones:    {self.n_drones}\n")
+                f.write(f"  flowers:     {len(self.flowers)}\n")
+                f.write(f"  pollinated:  {self.pollinated_total}\n")
+                f.write(f"  duration:    {round(time.time()-self.t0,1)} s\n")
+        except Exception as e:
+            self.get_logger().warning(f"summary failed: {e}")
+
+    def destroy_node(self):
+        try: self.events_f.close(); self.pollin_f.close(); self.telem_f.close()
+        except Exception: pass
+        super().destroy_node()
+
+
+def main(args=None):
+    rclpy.init(args=args)
+    n = MissionOrchestrator()
+    try: rclpy.spin(n)
+    except KeyboardInterrupt: pass
+    finally: n.destroy_node(); rclpy.shutdown()
+
+if __name__ == '__main__': main()

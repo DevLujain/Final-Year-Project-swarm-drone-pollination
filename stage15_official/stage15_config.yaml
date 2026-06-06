@@ -1,0 +1,65 @@
+# ============================================================
+# stage15_config.yaml — Stage 15 (clean rewrite)
+# ============================================================
+#
+# Edit before each run of launch_stage15.sh. The launcher reads this
+# once at startup and propagates everything into the ROS 2 nodes via
+# --ros-args.
+#
+# Conservative defaults for the FIRST reliable run:
+#   - current_day=5  (peak bloom -> guaranteed prime targets)
+#   - n_drones=2     (easy to debug)
+#   - mode=full_cycle (will run day 5 -> 8)
+#   - flower_count=60 (raise once stable)
+#   - rtf=1.0        (real time; raise to 4 only after a clean run)
+# ============================================================
+
+swarm:
+  n_drones: 2
+  base_separation_m: 1.2
+
+mission:
+  field_size_m: [15.0, 15.0]
+  flower_count_target: 60
+  flower_count_jitter: 10
+  bloom_window_days: 8
+
+mode:
+  type: full_cycle
+  current_day: 5
+  survey_only: false
+
+simulation:
+  real_time_factor: 1.0
+  random_seed: 42
+  gazebo_gui: true
+
+drone:
+  mass_kg: 0.135
+  max_thrust_N: 3.92
+  battery_full_minutes: 10.0
+  battery_rtb_threshold_pct: 20.0
+  battery_swap_seconds: 90.0
+  cruise_speed_m_s: 2.0
+  approach_speed_m_s: 0.4
+  contact_descent_speed_m_s: 0.08
+  pistil_length_m: 0.30
+  brush_sweep_distance_m: 0.06
+  brush_sweep_duration_s: 4.0
+  tof_contact_distance_m: 0.03
+
+bloom:
+  bloom_start_mean_day: 4
+  bloom_start_sigma_days: 1.5
+  prime_target_window_days: [2, 4]
+  partial_target_window_days: [5, 7]
+
+mission_altitudes:
+  survey_m: 4.0
+  cruise_m: 3.0
+  approach_m: 1.5
+
+logging:
+  log_directory: "~/Desktop/FYP/mission_outputs/stage15"
+  run_id_prefix: "stage15"
+  telemetry_hz: 2.0

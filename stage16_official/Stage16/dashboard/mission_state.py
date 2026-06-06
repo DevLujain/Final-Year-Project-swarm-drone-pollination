@@ -1,0 +1,292 @@
+"""
+mission_state.py — Stage 16 v13
+================================
+RULES:
+  1. Field map shows ONLY flowers the drones have discovered (observed).
+     Undiscovered flowers are invisible — no cheating the field map.
+  2. Bloom state (open/closed/spent) is shown PER FLOWER once discovered,
+     because the orchestrator sends state in the observation message.
+  3. Pollination is tracked by flower_id. Once pollinated, never reset.
+  4. Closed flowers that are discovered are shown on the map (grey/dark)
+     so the operator sees the drone memorized them.
+"""
+from __future__ import annotations
+import os, threading, time
+
+FIELD_W  = float(os.environ.get('STAGE16_FIELD_X', 15.0))
+FIELD_H  = float(os.environ.get('STAGE16_FIELD_Y', 15.0))
+N_DRONES = int(os.environ.get('STAGE16_N_DRONES', 2))
+DEDUP_R  = float(os.environ.get('STAGE16_DASH_DEDUP_M', 0.40))
+
+SECTOR_NAMES = ['LEFT','RIGHT'] if N_DRONES==2 else [f'SECT_{i}' for i in range(N_DRONES)]
+DRONE_SECTOR = {i: SECTOR_NAMES[i] for i in range(N_DRONES)}
+GRID_COLS = max(1, int(round(FIELD_W)))
+GRID_ROWS = max(1, int(round(FIELD_H)))
+
+def _sector(x):
+    return SECTOR_NAMES[min(N_DRONES-1, max(0, int(x//(FIELD_W/N_DRONES))))]
+
+
+class MissionState:
+
+    def __init__(self):
+        self._lock = threading.Lock()
+        self.drone_states    = {i:'IDLE'     for i in range(N_DRONES)}
+        self.drone_poses     = {i:(0.,0.,0.) for i in range(N_DRONES)}
+        self.battery         = {i:100.0      for i in range(N_DRONES)}
+        self.current_targets = {i:None       for i in range(N_DRONES)}
+
+        # Discovered flowers: fid -> {x,y,state,sector,day_first_seen,drone_id,pollinated}
+        # Only populated when a drone observes a flower. NEVER cleared between days.
+        self.flowers_observed: dict = {}
+
+        # Persistent pollination set — never cleared
+        self.pollinated_fids: set = set()
+        self.pollination_events: list = []
+
+        self.current_day   = 0
+        self.daily_summary: list = []
+        self._daily_index:  dict = {}
+        self.event_log:     list = []
+
+        self._grid_sum   = [[0.]*GRID_COLS for _ in range(GRID_ROWS)]
+        self._grid_count = [[0] *GRID_COLS for _ in range(GRID_ROWS)]
+        self.health_grid = [[0.]*GRID_COLS for _ in range(GRID_ROWS)]
+
+        self.connected_to_ros   = False
+        self.mission_active     = False
+        self.mission_complete   = False
+        self.mission_start_time = time.time()
+        self.last_update_time   = time.time()
+
+    # ── Write API ─────────────────────────────────────────────────
+    def set_connected(self, v: bool):
+        with self._lock:
+            self.connected_to_ros = v
+
+    def update_drone_state(self, did: int, state: str):
+        with self._lock:
+            self.drone_states[did] = state
+            self.last_update_time  = time.time()
+            if state in ('TAKEOFF', 'SURVEY'):
+                self.mission_active = True
+
+    def update_drone_pose(self, did: int, x: float, y: float, z: float):
+        with self._lock:
+            self.drone_poses[did] = (round(x,3), round(y,3), round(z,3))
+
+    def update_battery(self, did: int, pct: float):
+        with self._lock:
+            self.battery[did] = round(pct, 1)
+
+    def set_current_day(self, day: int):
+        with self._lock:
+            if day == self.current_day:
+                return
+            self.current_day = day
+            if day not in self._daily_index:
+                self._daily_index[day] = len(self.daily_summary)
+                self.daily_summary.append(
+                    {'day': day, 'new_obs': 0, 'pollinated': 0})
+            self.last_update_time = time.time()
+
+    def add_observation(self, did: int, fid: int,
+                        x: float, y: float, day: int,
+                        state: str = 'unknown'):
+        """Record a drone-discovered flower. Never overwrites pollinated=True."""
+        with self._lock:
+            fx, fy = round(float(x), 2), round(float(y), 2)
+            fid = int(fid)
+
+            # Spatial dedup — same physical flower seen under different ids.
+            # State may only UPGRADE (closed → open). A lingering bud
+            # cluster must never downgrade an open or pollinated flower.
+            r2 = DEDUP_R * DEDUP_R
+            for existing in self.flowers_observed.values():
+                if (existing['x']-fx)**2 + (existing['y']-fy)**2 <= r2:
+                    if state == 'open' and not existing['pollinated']:
+                        existing['state'] = 'open'
+                    elif state == 'closed' and existing['state'] in ('unknown', ''):
+                        existing['state'] = 'closed'
+                    return
+
+            if fid in self.flowers_observed:
+                ex = self.flowers_observed[fid]
+                if state == 'open' and not ex['pollinated']:
+                    ex['state'] = 'open'
+                elif state == 'closed' and ex['state'] in ('unknown', ''):
+                    ex['state'] = 'closed'
+                return
+
+            # v14: a newly-opened flower can sit further from its earlier
+            # bud estimate than DEDUP_R (buds are never TOF-refined).
+            # Upgrade the nearest CLOSED dot within the wider bud radius
+            # instead of plotting a duplicate.
+            if state == 'open':
+                best_k, best_d = None, (DEDUP_R * 1.6) ** 2
+                for k, existing in self.flowers_observed.items():
+                    if existing['state'] != 'closed' or existing['pollinated']:
+                        continue
+                    d = (existing['x']-fx)**2 + (existing['y']-fy)**2
+                    if d <= best_d:
+                        best_k, best_d = k, d
+                if best_k is not None:
+                    e = self.flowers_observed[best_k]
+                    e['state'] = 'open'
+                    e['x'], e['y'] = fx, fy
+                    return
+
+            # New flower discovered
+            self.flowers_observed[fid] = {
+                'x':             fx,
+                'y':             fy,
+                'state':         state if state else 'unknown',
+                'sector':        _sector(fx),
+                'day_first_seen': int(day),
+                'drone_id':      int(did),
+                'pollinated':    fid in self.pollinated_fids,
+            }
+            col = max(0, min(GRID_COLS-1, int(fx)))
+            row = max(0, min(GRID_ROWS-1, int(fy)))
+            self._grid_sum[row][col]   += 1.0
+            self._grid_count[row][col] += 1
+            self.health_grid[row][col]  = (self._grid_sum[row][col]
+                                           / self._grid_count[row][col])
+            if day in self._daily_index:
+                self.daily_summary[self._daily_index[day]]['new_obs'] += 1
+            self.last_update_time = time.time()
+
+    def mark_pollinated(self, fid: int, x: float, y: float):
+        """Mark flower pollinated from the pollination_success event.
+        The event carries the orchestrator's LANDMARK id (≥5000), which is
+        not the dashboard's perception/bud id — so match by POSITION first,
+        and only fall back to a direct fid hit."""
+        with self._lock:
+            fid = int(fid)
+            if fid in self.pollinated_fids:
+                return  # already done
+
+            self.pollinated_fids.add(fid)
+
+            best_fid2, best_d2 = None, float('inf')
+            if x is not None and y is not None:
+                fx2, fy2 = float(x), float(y)
+                for k, f in self.flowers_observed.items():
+                    d2 = (f['x']-fx2)**2 + (f['y']-fy2)**2
+                    if d2 < best_d2:
+                        best_fid2, best_d2 = k, d2
+            if best_fid2 is not None and best_d2 <= (DEDUP_R*3)**2:
+                f2 = self.flowers_observed[best_fid2]
+                f2['pollinated'] = True
+                f2['state'] = 'open'
+                px, py, sec = f2['x'], f2['y'], f2['sector']
+            elif fid in self.flowers_observed:
+                f2 = self.flowers_observed[fid]
+                f2['pollinated'] = True
+                px, py, sec = f2['x'], f2['y'], f2['sector']
+            else:
+                px = round(float(x), 2) if x is not None else None
+                py = round(float(y), 2) if y is not None else None
+                sec = _sector(px) if px is not None else SECTOR_NAMES[0]
+
+            self.pollination_events.append({
+                'drone_id': None, 'flower_id': fid,
+                'flower_x': px, 'flower_y': py,
+                'sector': sec, 'day': self.current_day,
+                'timestamp': time.time(),
+            })
+            if self.current_day in self._daily_index:
+                self.daily_summary[self._daily_index[self.current_day]]['pollinated'] += 1
+            self.last_update_time = time.time()
+
+    def add_event(self, etype: str, drone_id, payload: dict):
+        with self._lock:
+            self.event_log.append({'ts': time.time(), 'type': etype,
+                                   'drone_id': drone_id, 'payload': payload or {}})
+            self.event_log = self.event_log[-60:]
+            if etype == 'mission_complete':
+                self.mission_complete = True
+                self.mission_active   = False
+
+    def reset(self):
+        """Clear local view only — does NOT affect the live mission."""
+        with self._lock:
+            self.drone_states    = {i:'IDLE'  for i in range(N_DRONES)}
+            self.battery         = {i:100.0   for i in range(N_DRONES)}
+            self.flowers_observed = {}
+            self.pollinated_fids  = set()
+            self.pollination_events = []
+            self.daily_summary   = []
+            self._daily_index    = {}
+            self.event_log       = []
+            self.mission_active  = False
+            self.mission_complete = False
+            self.mission_start_time = time.time()
+            self.last_update_time   = time.time()
+            self._grid_sum   = [[0.]*GRID_COLS for _ in range(GRID_ROWS)]
+            self._grid_count = [[0] *GRID_COLS for _ in range(GRID_ROWS)]
+            self.health_grid = [[0.]*GRID_COLS for _ in range(GRID_ROWS)]
+
+    def get_snapshot(self) -> dict:
+        with self._lock:
+            n_obs      = len(self.flowers_observed)
+            n_poll     = len(self.pollinated_fids)
+            coverage   = round(n_poll / n_obs * 100, 1) if n_obs else 0.0
+            elapsed    = round(time.time() - self.mission_start_time, 1)
+
+            sector_totals = {s: 0 for s in SECTOR_NAMES}
+            for f in self.flowers_observed.values():
+                sector_totals[f['sector']] += 1
+
+            drone_progress = {i: {'observed': 0, 'pollinated': 0}
+                              for i in range(N_DRONES)}
+            for f in self.flowers_observed.values():
+                drone_progress[f['drone_id']]['observed'] += 1
+                if f['pollinated']:
+                    drone_progress[f['drone_id']]['pollinated'] += 1
+
+            strip = FIELD_W / N_DRONES
+            drone_sectors = {
+                i: f"{SECTOR_NAMES[i]} (x {strip*i:.1f}–{strip*(i+1):.1f} m)"
+                for i in range(N_DRONES)}
+
+            flower_positions = [
+                {'flower_id': fid,
+                 'x':         f['x'],
+                 'y':         f['y'],
+                 'state':     f['state'],
+                 'pollinated': f['pollinated']}
+                for fid, f in self.flowers_observed.items()
+            ]
+
+            return {
+                'connected':          self.connected_to_ros,
+                'elapsed_s':          elapsed,
+                'mission_active':     self.mission_active,
+                'mission_complete':   self.mission_complete,
+                'current_day':        self.current_day,
+                'daily_summary':      list(self.daily_summary),
+                'coverage_pct':       coverage,
+                'flowers_pollinated': n_poll,
+                'total_flowers':      n_obs,
+                'field_w':            FIELD_W,
+                'field_h':            FIELD_H,
+                'n_drones':           N_DRONES,
+                'drone_states':       dict(self.drone_states),
+                'drone_sectors':      dict(drone_sectors),
+                'drone_poses':        {i: list(p) for i,p in self.drone_poses.items()},
+                'battery':            dict(self.battery),
+                'current_targets':    dict(self.current_targets),
+                'drone_progress':     drone_progress,
+                'sector_totals':      sector_totals,
+                'sector_names':       SECTOR_NAMES,
+                'pollination_events': list(self.pollination_events[-30:]),
+                'event_log':          list(self.event_log[-30:]),
+                'flower_positions':   flower_positions,
+                'health_grid': [
+                    [round(self.health_grid[r][c], 3) for c in range(GRID_COLS)]
+                    for r in range(GRID_ROWS)],
+                'grid_rows':          GRID_ROWS,
+                'grid_cols':          GRID_COLS,
+                'last_update':        round(self.last_update_time, 2),
+            }
