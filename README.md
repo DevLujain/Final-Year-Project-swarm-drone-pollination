@@ -3,7 +3,7 @@
 **Universiti Malaya · Faculty of Computer Science & Information Technology · Department of Artificial Intelligence**
 **Student:** Lujain Alhumaidah · **Supervisor:** Dr. Narsimlu Kemsaram
 
-A Final Year Project implementing an autonomous multi-drone system for precision sunflower pollination. A swarm of simulated quadcopters surveys a field, detects sunflowers with onboard vision, plans [...]
+A Final Year Project implementing an autonomous multi-drone system for precision sunflower pollination. A swarm of simulated quadcopters surveys a field, detects sunflowers with onboard vision, plans collision-free pollination routes, and autonomously pollinates detected flowers across a multi-day bloom cycle.
 
 **Fixed stack:** Ubuntu 24.04 · ROS 2 Jazzy · PX4 SITL v1.16 · Gazebo Harmonic · YOLOv8
 
@@ -34,7 +34,7 @@ A Final Year Project implementing an autonomous multi-drone system for precision
 
 ## Quick Start (Stage 16 — latest)
 
-Stage 16 is the most complete build: drones rely **only on their own sensors** (camera + ToF) — no ground-truth flower positions are fed to the controllers — with a multi-day bloom cycle, map merg[...]
+Stage 16 is the most complete build: drones rely **only on their own sensors** (camera + ToF) — no ground-truth flower positions are fed to the controllers — with a multi-day bloom cycle, map merge, mTSP-optimised route assignment, and live web dashboard.
 
 ```bash
 cd stage16_official/Stage16
@@ -75,7 +75,7 @@ Configuration (drone count, bloom days, logging directory, telemetry rate) lives
 | 1–4 | System, ROS 2 Jazzy, PX4 SITL + Gazebo Harmonic, YOLOv8 ML stack | `setup/`, `docs/` |
 | 5–7 | Dataset download/merge, YOLOv8 fine-tuning on sunflower data, full-stack verification | `setup/`, `fyp_training/` |
 | 8–12 | Single-drone pollination FSM → first multi-drone field demo | `setup/`, `mission_outputs/stage12_*` |
-| 14 | 3-drone swarm with visual-servoing approach trajectory (approach → lower → encircle → touch), YOLO field view, simulation video | `setup/`, `launch_stage14.sh`, `mission_outputs/stage14/`[...]
+| 14 | 3-drone swarm with visual-servoing approach trajectory (approach → lower → encircle → touch), YOLO field view, simulation video | `setup/`, `launch_stage14.sh`, `mission_outputs/stage14/` |
 | 15 | Clean rewrite: 4 source files, multi-day bloom cycle, mTSP routing, CSV event stream | `stage15_official/` |
 | 16 | "No-cheat" sensing (camera + ToF only), provisional-vs-confirmed map separation, live web dashboard | `stage16_official/Stage16/` |
 
@@ -100,7 +100,7 @@ Raw sensor streams (camera frames, ToF scans) are processed in memory and **not*
 
 ## ROS 2 Package
 
-`ros2_ws/src/precision_pollination/` contains the workspace nodes used by the launchers: `offboard_mission_controller.py`, `swarm_drone_controller.py`, `swarm_coordinator.py`, `swarm_monitor.py`, and [...]
+`ros2_ws/src/precision_pollination/` contains the workspace nodes used by the launchers: `offboard_mission_controller.py`, `swarm_drone_controller.py`, `swarm_coordinator.py`, `swarm_monitor.py`, and supporting utilities.
 
 ```bash
 cd ros2_ws
@@ -112,7 +112,7 @@ source install/setup.bash
 
 ## Vision & Datasets
 
-YOLOv8 is fine-tuned on merged sunflower datasets (Roboflow, Zenodo NAB, Kaggle); bloom-stage reference images are in `Sunflower_stages/` (YoungBud, MatureBud, EarlyBloom, Healthy, Wilted), and detect[...]
+YOLOv8 is fine-tuned on merged sunflower datasets (Roboflow, Zenodo NAB, Kaggle); bloom-stage reference images are in `Sunflower_stages/` (YoungBud, MatureBud, EarlyBloom, Healthy, Wilted), and detection stills from real footage are in `real_footage/`.
 
 ---
 
